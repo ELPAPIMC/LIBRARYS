@@ -1,7 +1,7 @@
 local BrilloHub = {}
 BrilloHub.__index = BrilloHub
 
--- Services
+-- Configuración
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 local CoreGui = game:GetService("CoreGui")
@@ -11,83 +11,41 @@ local Player = Players.LocalPlayer
 function BrilloHub.new(titulo)
     local self = setmetatable({}, BrilloHub)
     
-    -- ScreenGui
+    -- Crear interfaz principal
     self.ScreenGui = Instance.new("ScreenGui")
     self.ScreenGui.Name = "BrilloHub"
     self.ScreenGui.ResetOnSpawn = false
     self.ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
     
+    -- Intentar colocarla en CoreGui para scripts ejecutados
     pcall(function()
         self.ScreenGui.Parent = CoreGui
     end)
     
+    -- Si falla, usar PlayerGui como alternativa
     if not self.ScreenGui.Parent then
         self.ScreenGui.Parent = Player:WaitForChild("PlayerGui")
     end
     
-    -- Theme definitions
-    self.Themes = {
-        Dark = {
-            MainFrame = Color3.fromRGB(30, 30, 35),
-            TitleBar = Color3.fromRGB(40, 40, 45),
-            CategoryFrame = Color3.fromRGB(35, 35, 40),
-            ContentFrame = Color3.fromRGB(25, 25, 30),
-            Button = Color3.fromRGB(40, 40, 45),
-            ButtonHover = Color3.fromRGB(60, 60, 65),
-            ButtonActive = Color3.fromRGB(0, 150, 255),
-            Text = Color3.fromRGB(220, 220, 220),
-            Accent = Color3.fromRGB(0, 120, 255),
-            Notification = Color3.fromRGB(40, 40, 45)
-        },
-        Neon = {
-            MainFrame = Color3.fromRGB(20, 20, 30),
-            TitleBar = Color3.fromRGB(30, 30, 40),
-            CategoryFrame = Color3.fromRGB(25, 25, 35),
-            ContentFrame = Color3.fromRGB(15, 15, 25),
-            Button = Color3.fromRGB(50, 0, 100),
-            ButtonHover = Color3.fromRGB(80, 0, 150),
-            ButtonActive = Color3.fromRGB(0, 255, 255),
-            Text = Color3.fromRGB(255, 255, 255),
-            Accent = Color3.fromRGB(255, 0, 255),
-            Notification = Color3.fromRGB(30, 0, 60)
-        },
-        Spatial = {
-            MainFrame = Color3.fromRGB(40, 40, 50),
-            TitleBar = Color3.fromRGB(50, 50, 60),
-            CategoryFrame = Color3.fromRGB(45, 45, 55),
-            ContentFrame = Color3.fromRGB(35, 35, 45),
-            Button = Color3.fromRGB(50, 50, 60),
-            ButtonHover = Color3.fromRGB(70, 70, 80),
-            ButtonActive = Color3.fromRGB(100, 100, 255),
-            Text = Color3.fromRGB(200, 200, 255),
-            Accent = Color3.fromRGB(150, 150, 255),
-            Notification = Color3.fromRGB(50, 50, 60)
-        }
-    }
-    self.CurrentTheme = self.Themes.Dark
-    
-    -- MainFrame
+    -- Frame principal
     self.MainFrame = Instance.new("Frame")
     self.MainFrame.Name = "MainFrame"
     self.MainFrame.Size = UDim2.new(0, 650, 0, 400)
     self.MainFrame.Position = UDim2.new(0.5, -325, 0.5, -200)
-    self.MainFrame.BackgroundColor3 = self.CurrentTheme.MainFrame
+    self.MainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
     self.MainFrame.BorderSizePixel = 0
     self.MainFrame.Parent = self.ScreenGui
     
+    -- Esquinas redondeadas
     local corner = Instance.new("UICorner")
     corner.CornerRadius = UDim.new(0, 8)
     corner.Parent = self.MainFrame
     
-    self.OriginalSize = self.MainFrame.Size
-    self.OriginalPosition = self.MainFrame.Position
-    self.IsMinimized = false
-    
-    -- TitleBar
+    -- Barra de título
     self.TitleBar = Instance.new("Frame")
     self.TitleBar.Name = "TitleBar"
     self.TitleBar.Size = UDim2.new(1, 0, 0, 30)
-    self.TitleBar.BackgroundColor3 = self.CurrentTheme.TitleBar
+    self.TitleBar.BackgroundColor3 = Color3.fromRGB(40, 40, 45)
     self.TitleBar.BorderSizePixel = 0
     self.TitleBar.Parent = self.MainFrame
     
@@ -95,19 +53,20 @@ function BrilloHub.new(titulo)
     titleCorner.CornerRadius = UDim.new(0, 8)
     titleCorner.Parent = self.TitleBar
     
+    -- Título
     self.Title = Instance.new("TextLabel")
     self.Title.Name = "Title"
     self.Title.Size = UDim2.new(1, -40, 1, 0)
     self.Title.Position = UDim2.new(0, 10, 0, 0)
     self.Title.BackgroundTransparency = 1
-    self.Title.TextColor3 = self.CurrentTheme.Text
+    self.Title.TextColor3 = Color3.fromRGB(255, 255, 255)
     self.Title.TextSize = 16
     self.Title.Font = Enum.Font.GothamBold
     self.Title.TextXAlignment = Enum.TextXAlignment.Left
     self.Title.Text = titulo or "BrilloHub"
     self.Title.Parent = self.TitleBar
     
-    -- Close Button
+    -- Botón de cerrar
     self.CloseButton = Instance.new("TextButton")
     self.CloseButton.Name = "CloseButton"
     self.CloseButton.Size = UDim2.new(0, 24, 0, 24)
@@ -120,28 +79,12 @@ function BrilloHub.new(titulo)
     closeCorner.CornerRadius = UDim.new(0, 12)
     closeCorner.Parent = self.CloseButton
     
-    -- Minimize Button
-    self.MinimizeButton = Instance.new("TextButton")
-    self.MinimizeButton.Name = "MinimizeButton"
-    self.MinimizeButton.Size = UDim2.new(0, 24, 0, 24)
-    self.MinimizeButton.Position = UDim2.new(1, -54, 0, 3)
-    self.MinimizeButton.BackgroundColor3 = Color3.fromRGB(255, 165, 0)
-    self.MinimizeButton.Text = "-"
-    self.MinimizeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-    self.MinimizeButton.Font = Enum.Font.GothamBold
-    self.MinimizeButton.TextSize = 16
-    self.MinimizeButton.Parent = self.TitleBar
-    
-    local minimizeCorner = Instance.new("UICorner")
-    minimizeCorner.CornerRadius = UDim.new(0, 12)
-    minimizeCorner.Parent = self.MinimizeButton
-    
-    -- CategoryFrame
+    -- Categorías
     self.CategoryFrame = Instance.new("Frame")
     self.CategoryFrame.Name = "CategoryFrame"
     self.CategoryFrame.Size = UDim2.new(0, 120, 1, -30)
     self.CategoryFrame.Position = UDim2.new(0, 0, 0, 30)
-    self.CategoryFrame.BackgroundColor3 = self.CurrentTheme.CategoryFrame
+    self.CategoryFrame.BackgroundColor3 = Color3.fromRGB(35, 35, 40)
     self.CategoryFrame.BorderSizePixel = 0
     self.CategoryFrame.Parent = self.MainFrame
     
@@ -149,12 +92,12 @@ function BrilloHub.new(titulo)
     categoryCorner.CornerRadius = UDim.new(0, 8)
     categoryCorner.Parent = self.CategoryFrame
     
-    -- ContentFrame
+    -- Contenido
     self.ContentFrame = Instance.new("Frame")
     self.ContentFrame.Name = "ContentFrame"
     self.ContentFrame.Size = UDim2.new(1, -130, 1, -40)
     self.ContentFrame.Position = UDim2.new(0, 125, 0, 35)
-    self.ContentFrame.BackgroundColor3 = self.CurrentTheme.ContentFrame
+    self.ContentFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
     self.ContentFrame.BorderSizePixel = 0
     self.ContentFrame.Parent = self.MainFrame
     
@@ -162,7 +105,7 @@ function BrilloHub.new(titulo)
     contentCorner.CornerRadius = UDim.new(0, 8)
     contentCorner.Parent = self.ContentFrame
     
-    -- ContentScroll
+    -- Scroll para contenido
     self.ContentScroll = Instance.new("ScrollingFrame")
     self.ContentScroll.Name = "ContentScroll"
     self.ContentScroll.Size = UDim2.new(1, -10, 1, -10)
@@ -174,11 +117,13 @@ function BrilloHub.new(titulo)
     self.ContentScroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
     self.ContentScroll.Parent = self.ContentFrame
     
+    -- Layout para contenido
     local contentLayout = Instance.new("UIListLayout")
     contentLayout.Padding = UDim.new(0, 10)
     contentLayout.SortOrder = Enum.SortOrder.LayoutOrder
     contentLayout.Parent = self.ContentScroll
     
+    -- Padding
     local contentPadding = Instance.new("UIPadding")
     contentPadding.PaddingTop = UDim.new(0, 5)
     contentPadding.PaddingLeft = UDim.new(0, 5)
@@ -186,25 +131,11 @@ function BrilloHub.new(titulo)
     contentPadding.PaddingBottom = UDim.new(0, 5)
     contentPadding.Parent = self.ContentScroll
     
-    -- NotificationFrame
-    self.NotificationFrame = Instance.new("Frame")
-    self.NotificationFrame.Name = "NotificationFrame"
-    self.NotificationFrame.Size = UDim2.new(0, 250, 1, 0)
-    self.NotificationFrame.Position = UDim2.new(1, -260, 0, 10)
-    self.NotificationFrame.BackgroundTransparency = 1
-    self.NotificationFrame.Parent = self.ScreenGui
-    
-    local notifLayout = Instance.new("UIListLayout")
-    notifLayout.Padding = UDim.new(0, 10)
-    notifLayout.SortOrder = Enum.SortOrder.LayoutOrder
-    notifLayout.VerticalAlignment = Enum.VerticalAlignment.Top
-    notifLayout.Parent = self.NotificationFrame
-    
-    -- Variables
+    -- Variables para controlar categorías
     self.Categories = {}
     self.ActiveCategory = nil
     
-    -- Dragging
+    -- Arrastrar ventana
     local dragging = false
     local dragStart
     local startPos
@@ -235,115 +166,37 @@ function BrilloHub.new(titulo)
         end
     end)
     
-    -- Close Button
+    -- Cerrar ventana
     self.CloseButton.MouseButton1Click:Connect(function()
         self.ScreenGui:Destroy()
     end)
     
-    -- Minimize Button
-    self.MinimizeButton.MouseButton1Click:Connect(function()
-        self.IsMinimized = not self.IsMinimized
-        if self.IsMinimized then
-            TweenService:Create(
-                self.MainFrame,
-                TweenInfo.new(0.3, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut),
-                { Size = UDim2.new(0, 650, 0, 30) }
-            ):Play()
-            self.MinimizeButton.Text = "+"
-        else
-            TweenService:Create(
-                self.MainFrame,
-                TweenInfo.new(0.3, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut),
-                { Size = self.OriginalSize }
-            ):Play()
-            self.MinimizeButton.Text = "-"
-        end
-    end)
+    -- Variable para notificaciones
+    self.NotificationFrame = Instance.new("Frame")
+    self.NotificationFrame.Name = "NotificationFrame"
+    self.NotificationFrame.Size = UDim2.new(0, 250, 1, 0)
+    self.NotificationFrame.Position = UDim2.new(1, -260, 0, 10)
+    self.NotificationFrame.BackgroundTransparency = 1
+    self.NotificationFrame.Parent = self.ScreenGui
     
-    -- Add Settings category with theme selector
-    local settingsCategory = self:AddCategory("Settings")
-    self:AddDropdown(settingsCategory, "Theme", {"Dark", "Neon", "Spatial"}, "Dark", function(selected)
-        self:ApplyTheme(selected)
-    end)
+    local notifLayout = Instance.new("UIListLayout")
+    notifLayout.Padding = UDim.new(0, 10)
+    notifLayout.SortOrder = Enum.SortOrder.LayoutOrder
+    notifLayout.VerticalAlignment = Enum.VerticalAlignment.Top
+    notifLayout.Parent = self.NotificationFrame
     
     return self
 end
 
-function BrilloHub:ApplyTheme(themeName)
-    local theme = self.Themes[themeName] or self.Themes.Dark
-    self.CurrentTheme = theme
-    
-    self.MainFrame.BackgroundColor3 = theme.MainFrame
-    self.TitleBar.BackgroundColor3 = theme.TitleBar
-    self.CategoryFrame.BackgroundColor3 = theme.CategoryFrame
-    self.ContentFrame.BackgroundColor3 = theme.ContentFrame
-    self.Title.TextColor3 = theme.Text
-    
-    for _, category in pairs(self.Categories) do
-        category.Button.BackgroundColor3 = theme.Button
-        category.Button.TextColor3 = theme.Text
-        if category == self.ActiveCategory then
-            category.Button.BackgroundColor3 = theme.ButtonActive
-        end
-        for _, child in pairs(category.Container:GetChildren()) do
-            if child:IsA("TextButton") then
-                child.BackgroundColor3 = theme.Button
-                child.TextColor3 = theme.Text
-            elseif child:IsA("Frame") and child.Name:match("Toggle$") then
-                child.BackgroundColor3 = theme.Button
-                child.Title.TextColor3 = theme.Text
-                child.ToggleButton.BackgroundColor3 = theme.Button
-                if child.ToggleCircle.Position.X.Offset > 2 then
-                    child.ToggleButton.BackgroundColor3 = theme.ButtonActive
-                end
-            elseif child:IsA("Frame") and child.Name:match("Slider$") then
-                child.BackgroundColor3 = theme.Button
-                child.Title.TextColor3 = theme.Text
-                child.Value.TextColor3 = theme.Text
-                child.SliderBar.BackgroundColor3 = theme.Button
-                child.SliderFill.BackgroundColor3 = theme.ButtonActive
-            elseif child:IsA("Frame") and child.Name:match("Dropdown$") then
-                child.BackgroundColor3 = theme.Button
-                child.Title.TextColor3 = theme.Text
-                child.SelectedValue.TextColor3 = theme.Accent
-                child.Arrow.TextColor3 = theme.Text
-                child.Options.BackgroundColor3 = theme.Button
-            elseif child:IsA("Frame") and child.Name:match("Textbox$") then
-                child.BackgroundColor3 = theme.Button
-                child.Title.TextColor3 = theme.Text
-                child.Input.TextColor3 = theme.Text
-                child.Input.BackgroundColor3 = theme.Button
-            elseif child:IsA("Frame") and child.Name:match("Keybind$") then
-                child.BackgroundColor3 = theme.Button
-                child.Title.TextColor3 = theme.Text
-                child.KeyDisplay.TextColor3 = theme.Text
-                child.KeyDisplay.BackgroundColor3 = theme.Button
-            elseif child:IsA("Frame") and child.Name:match("Group$") then
-                child.BackgroundColor3 = theme.Button
-                child.Title.TextColor3 = theme.Text
-                child.ToggleButton.TextColor3 = theme.Text
-                for _, subChild in pairs(child.Content:GetChildren()) do
-                    if subChild:IsA("TextLabel") and subChild.Name == "Label" then
-                        subChild.TextColor3 = theme.Text
-                    end
-                end
-            elseif child:IsA("TextLabel") and child.Name == "Label" then
-                child.TextColor3 = theme.Text
-            elseif child:IsA("Frame") and child.Name == "Divider" then
-                child.BackgroundColor3 = theme.ButtonHover
-            end
-        end
-    end
-end
-
+-- Crear categoría
 function BrilloHub:AddCategory(nombre, icono)
     local categoryButton = Instance.new("TextButton")
     categoryButton.Name = nombre.."Category"
     categoryButton.Size = UDim2.new(1, -10, 0, 30)
     categoryButton.Position = UDim2.new(0, 5, 0, 5 + (#self.Categories * 35))
-    categoryButton.BackgroundColor3 = self.CurrentTheme.Button
+    categoryButton.BackgroundColor3 = Color3.fromRGB(45, 45, 50)
     categoryButton.Text = nombre
-    categoryButton.TextColor3 = self.CurrentTheme.Text
+    categoryButton.TextColor3 = Color3.fromRGB(200, 200, 200)
     categoryButton.Font = Enum.Font.GothamSemibold
     categoryButton.TextSize = 14
     categoryButton.Parent = self.CategoryFrame
@@ -352,6 +205,7 @@ function BrilloHub:AddCategory(nombre, icono)
     categoryCorner.CornerRadius = UDim.new(0, 6)
     categoryCorner.Parent = categoryButton
     
+    -- Contenedor para los elementos de esta categoría
     local container = Instance.new("Frame")
     container.Name = nombre.."Container"
     container.BackgroundTransparency = 1
@@ -376,19 +230,20 @@ function BrilloHub:AddCategory(nombre, icono)
     categoryButton.MouseButton1Click:Connect(function()
         if self.ActiveCategory then
             self.ActiveCategory.Container.Visible = false
-            self.ActiveCategory.Button.BackgroundColor3 = self.CurrentTheme.Button
-            self.ActiveCategory.Button.TextColor3 = self.CurrentTheme.Text
+            self.ActiveCategory.Button.BackgroundColor3 = Color3.fromRGB(45, 45, 50)
+            self.ActiveCategory.Button.TextColor3 = Color3.fromRGB(200, 200, 200)
         end
         
         container.Visible = true
-        categoryButton.BackgroundColor3 = self.CurrentTheme.ButtonActive
-        categoryButton.TextColor3 = self.CurrentTheme.Text
+        categoryButton.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
+        categoryButton.TextColor3 = Color3.fromRGB(255, 255, 255)
         self.ActiveCategory = category
     end)
     
+    -- Activar la primera categoría automáticamente
     if #self.Categories == 1 then
-        categoryButton.BackgroundColor3 = self.CurrentTheme.ButtonActive
-        categoryButton.TextColor3 = self.CurrentTheme.Text
+        categoryButton.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
+        categoryButton.TextColor3 = Color3.fromRGB(255, 255, 255)
         container.Visible = true
         self.ActiveCategory = category
     end
@@ -396,6 +251,7 @@ function BrilloHub:AddCategory(nombre, icono)
     return category
 end
 
+-- Añadir botón
 function BrilloHub:AddButton(categoria, titulo, callback)
     local category = self:GetCategory(categoria)
     if not category then return end
@@ -403,9 +259,9 @@ function BrilloHub:AddButton(categoria, titulo, callback)
     local button = Instance.new("TextButton")
     button.Name = titulo.."Button"
     button.Size = UDim2.new(1, 0, 0, 35)
-    button.BackgroundColor3 = self.CurrentTheme.Button
+    button.BackgroundColor3 = Color3.fromRGB(40, 40, 45)
     button.Text = titulo
-    button.TextColor3 = self.CurrentTheme.Text
+    button.TextColor3 = Color3.fromRGB(220, 220, 220)
     button.Font = Enum.Font.GothamSemibold
     button.TextSize = 14
     button.Parent = category.Container
@@ -414,36 +270,21 @@ function BrilloHub:AddButton(categoria, titulo, callback)
     buttonCorner.CornerRadius = UDim.new(0, 6)
     buttonCorner.Parent = button
     
+    -- Efectos visuales
     button.MouseEnter:Connect(function()
-        TweenService:Create(
-            button,
-            TweenInfo.new(0.15, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut),
-            { BackgroundColor3 = self.CurrentTheme.ButtonHover, Size = UDim2.new(1, 2, 0, 37) }
-        ):Play()
+        TweenService:Create(button, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(60, 60, 65)}):Play()
     end)
     
     button.MouseLeave:Connect(function()
-        TweenService:Create(
-            button,
-            TweenInfo.new(0.15, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut),
-            { BackgroundColor3 = self.CurrentTheme.Button, Size = UDim2.new(1, 0, 0, 35) }
-        ):Play()
+        TweenService:Create(button, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(40, 40, 45)}):Play()
     end)
     
     button.MouseButton1Down:Connect(function()
-        TweenService:Create(
-            button,
-            TweenInfo.new(0.1, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut),
-            { BackgroundColor3 = self.CurrentTheme.ButtonActive }
-        ):Play()
+        TweenService:Create(button, TweenInfo.new(0.1), {BackgroundColor3 = Color3.fromRGB(0, 150, 255)}):Play()
     end)
     
     button.MouseButton1Up:Connect(function()
-        TweenService:Create(
-            button,
-            TweenInfo.new(0.1, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut),
-            { BackgroundColor3 = self.CurrentTheme.ButtonHover }
-        ):Play()
+        TweenService:Create(button, TweenInfo.new(0.1), {BackgroundColor3 = Color3.fromRGB(60, 60, 65)}):Play()
     end)
     
     button.MouseButton1Click:Connect(function()
@@ -453,6 +294,7 @@ function BrilloHub:AddButton(categoria, titulo, callback)
     return button
 end
 
+-- Añadir toggle
 function BrilloHub:AddToggle(categoria, titulo, predeterminado, callback)
     local category = self:GetCategory(categoria)
     if not category then return end
@@ -462,7 +304,7 @@ function BrilloHub:AddToggle(categoria, titulo, predeterminado, callback)
     local toggle = Instance.new("Frame")
     toggle.Name = titulo.."Toggle"
     toggle.Size = UDim2.new(1, 0, 0, 35)
-    toggle.BackgroundColor3 = self.CurrentTheme.Button
+    toggle.BackgroundColor3 = Color3.fromRGB(40, 40, 45)
     toggle.Parent = category.Container
     
     local toggleCorner = Instance.new("UICorner")
@@ -475,7 +317,7 @@ function BrilloHub:AddToggle(categoria, titulo, predeterminado, callback)
     title.Position = UDim2.new(0, 10, 0, 0)
     title.BackgroundTransparency = 1
     title.Text = titulo
-    title.TextColor3 = self.CurrentTheme.Text
+    title.TextColor3 = Color3.fromRGB(220, 220, 220)
     title.Font = Enum.Font.GothamSemibold
     title.TextSize = 14
     title.TextXAlignment = Enum.TextXAlignment.Left
@@ -485,7 +327,7 @@ function BrilloHub:AddToggle(categoria, titulo, predeterminado, callback)
     toggleButton.Name = "ToggleButton"
     toggleButton.Size = UDim2.new(0, 40, 0, 20)
     toggleButton.Position = UDim2.new(1, -50, 0.5, -10)
-    toggleButton.BackgroundColor3 = self.CurrentTheme.Button
+    toggleButton.BackgroundColor3 = Color3.fromRGB(50, 50, 55)
     toggleButton.Parent = toggle
     
     local toggleButtonCorner = Instance.new("UICorner")
@@ -496,7 +338,7 @@ function BrilloHub:AddToggle(categoria, titulo, predeterminado, callback)
     toggleCircle.Name = "ToggleCircle"
     toggleCircle.Size = UDim2.new(0, 16, 0, 16)
     toggleCircle.Position = UDim2.new(0, 2, 0.5, -8)
-    toggleCircle.BackgroundColor3 = self.CurrentTheme.Text
+    toggleCircle.BackgroundColor3 = Color3.fromRGB(200, 200, 200)
     toggleCircle.Parent = toggleButton
     
     local toggleCircleCorner = Instance.new("UICorner")
@@ -510,60 +352,40 @@ function BrilloHub:AddToggle(categoria, titulo, predeterminado, callback)
     toggleClickArea.Text = ""
     toggleClickArea.Parent = toggle
     
+    -- Actualizar estado
     local function updateToggle()
-        if toggfederal
-            TweenService:Create(
-                toggleButton,
-                TweenInfo.new(0.15, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut),
-                { BackgroundColor3 = self.CurrentTheme.ButtonActive }
-            ):Play()
-            TweenService:Create(
-                toggleCircle,
-                TweenInfo.new(0.15, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut),
-                { Position = UDim2.new(0, 22, 0.5, -8) }
-            ):Play()
+        if toggled then
+            TweenService:Create(toggleButton, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(0, 120, 255)}):Play()
+            TweenService:Create(toggleCircle, TweenInfo.new(0.2), {Position = UDim2.new(0, 22, 0.5, -8)}):Play()
         else
-            TweenService:Create(
-                toggleButton,
-                TweenInfo.new(0.15, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut),
-                { BackgroundColor3 = self.CurrentTheme.Button }
-            ):Play()
-            TweenService:Create(
-                toggleCircle,
-                TweenInfo.new(0.15, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut),
-                { Position = UDim2.new(0, 2, 0.5, -8) }
-            ):Play()
+            TweenService:Create(toggleButton, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(50, 50, 55)}):Play()
+            TweenService:Create(toggleCircle, TweenInfo.new(0.2), {Position = UDim2.new(0, 2, 0.5, -8)}):Play()
         end
         
         pcall(callback, toggled)
     end
     
+    -- Configurar estado inicial
     if toggled then
-        toggleButton.BackgroundColor3 = self.CurrentTheme.ButtonActive
+        toggleButton.BackgroundColor3 = Color3.fromRGB(0, 120, 255)
         toggleCircle.Position = UDim2.new(0, 22, 0.5, -8)
     end
     
+    -- Eventos
     toggleClickArea.MouseButton1Click:Connect(function()
         toggled = not toggled
         updateToggle()
     end)
     
     toggle.MouseEnter:Connect(function()
-        TweenService:Create(
-            toggle,
-            TweenInfo.new(0.15, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut),
-            { BackgroundColor3 = self.CurrentTheme.ButtonHover }
-        ):Play()
+        TweenService:Create(toggle, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(50, 50, 55)}):Play()
     end)
     
     toggle.MouseLeave:Connect(function()
-        TweenService:Create(
-            toggle,
-            TweenInfo.new(0.15, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut),
-            { BackgroundColor3 = self.CurrentTheme.Button }
-        ):Play()
+        TweenService:Create(toggle, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(40, 40, 45)}):Play()
     end)
     
+    -- Función para obtener/establecer valor
     local toggleFunctions = {}
     
     function toggleFunctions:Set(value)
@@ -578,6 +400,7 @@ function BrilloHub:AddToggle(categoria, titulo, predeterminado, callback)
     return toggleFunctions
 end
 
+-- Añadir slider
 function BrilloHub:AddSlider(categoria, titulo, min, max, predeterminado, callback)
     local category = self:GetCategory(categoria)
     if not category then return end
@@ -590,7 +413,7 @@ function BrilloHub:AddSlider(categoria, titulo, min, max, predeterminado, callba
     local slider = Instance.new("Frame")
     slider.Name = titulo.."Slider"
     slider.Size = UDim2.new(1, 0, 0, 45)
-    slider.BackgroundColor3 = self.CurrentTheme.Button
+    slider.BackgroundColor3 = Color3.fromRGB(40, 40, 45)
     slider.Parent = category.Container
     
     local sliderCorner = Instance.new("UICorner")
@@ -603,7 +426,7 @@ function BrilloHub:AddSlider(categoria, titulo, min, max, predeterminado, callba
     title.Position = UDim2.new(0, 10, 0, 0)
     title.BackgroundTransparency = 1
     title.Text = titulo
-    title.TextColor3 = self.CurrentTheme.Text
+    title.TextColor3 = Color3.fromRGB(220, 220, 220)
     title.Font = Enum.Font.GothamSemibold
     title.TextSize = 14
     title.TextXAlignment = Enum.TextXAlignment.Left
@@ -615,7 +438,7 @@ function BrilloHub:AddSlider(categoria, titulo, min, max, predeterminado, callba
     valueLabel.Position = UDim2.new(1, -60, 0, 0)
     valueLabel.BackgroundTransparency = 1
     valueLabel.Text = tostring(value)
-    valueLabel.TextColor3 = self.CurrentTheme.Text
+    valueLabel.TextColor3 = Color3.fromRGB(220, 220, 220)
     valueLabel.Font = Enum.Font.GothamSemibold
     valueLabel.TextSize = 14
     valueLabel.TextXAlignment = Enum.TextXAlignment.Right
@@ -625,7 +448,7 @@ function BrilloHub:AddSlider(categoria, titulo, min, max, predeterminado, callba
     sliderBar.Name = "SliderBar"
     sliderBar.Size = UDim2.new(1, -20, 0, 10)
     sliderBar.Position = UDim2.new(0, 10, 0, 25)
-    sliderBar.BackgroundColor3 = self.CurrentTheme.Button
+    sliderBar.BackgroundColor3 = Color3.fromRGB(50, 50, 55)
     sliderBar.Parent = slider
     
     local sliderBarCorner = Instance.new("UICorner")
@@ -635,7 +458,7 @@ function BrilloHub:AddSlider(categoria, titulo, min, max, predeterminado, callba
     local sliderFill = Instance.new("Frame")
     sliderFill.Name = "SliderFill"
     sliderFill.Size = UDim2.new((value - min) / (max - min), 0, 1, 0)
-    sliderFill.BackgroundColor3 = self.CurrentTheme.ButtonActive
+    sliderFill.BackgroundColor3 = Color3.fromRGB(0, 120, 255)
     sliderFill.Parent = sliderBar
     
     local sliderFillCorner = Instance.new("UICorner")
@@ -649,20 +472,18 @@ function BrilloHub:AddSlider(categoria, titulo, min, max, predeterminado, callba
     sliderClickArea.Text = ""
     sliderClickArea.Parent = slider
     
+    -- Actualizar slider
     local function updateSlider(newValue, fireCallback)
         value = math.clamp(newValue, min, max)
         valueLabel.Text = tostring(math.floor(value * 10) / 10)
-        TweenService:Create(
-            sliderFill,
-            TweenInfo.new(0.15, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut),
-            { Size = UDim2.new((value - min) / (max - min), 0, 1, 0) }
-        ):Play()
+        sliderFill.Size = UDim2.new((value - min) / (max - min), 0, 1, 0)
         
         if fireCallback then
             pcall(callback, value)
         end
     end
     
+    -- Eventos
     local dragging = false
     
     sliderClickArea.MouseButton1Down:Connect(function(x)
@@ -688,21 +509,14 @@ function BrilloHub:AddSlider(categoria, titulo, min, max, predeterminado, callba
     end)
     
     slider.MouseEnter:Connect(function()
-        TweenService:Create(
-            slider,
-            TweenInfo.new(0.15, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut),
-            { BackgroundColor3 = self.CurrentTheme.ButtonHover }
-        ):Play()
+        TweenService:Create(slider, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(50, 50, 55)}):Play()
     end)
     
     slider.MouseLeave:Connect(function()
-        TweenService:Create(
-            slider,
-            TweenInfo.new(0.15, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut),
-            { BackgroundColor3 = self.CurrentTheme.Button }
-        ):Play()
+        TweenService:Create(slider, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(40, 40, 45)}):Play()
     end)
     
+    -- Función para obtener/establecer valor
     local sliderFunctions = {}
     
     function sliderFunctions:Set(newValue)
@@ -716,12 +530,13 @@ function BrilloHub:AddSlider(categoria, titulo, min, max, predeterminado, callba
     return sliderFunctions
 end
 
+-- Mostrar notificación
 function BrilloHub:Notify(titulo, mensaje, duracion, tipo)
     duracion = duracion or 3
     tipo = tipo or "info"
     
     local colors = {
-        info = self.CurrentTheme.Accent,
+        info = Color3.fromRGB(0, 120, 255),
         success = Color3.fromRGB(0, 200, 80),
         warning = Color3.fromRGB(255, 150, 0),
         error = Color3.fromRGB(255, 50, 50)
@@ -732,7 +547,7 @@ function BrilloHub:Notify(titulo, mensaje, duracion, tipo)
     local notification = Instance.new("Frame")
     notification.Name = "Notification"
     notification.Size = UDim2.new(1, 0, 0, 80)
-    notification.BackgroundColor3 = self.CurrentTheme.Notification
+    notification.BackgroundColor3 = Color3.fromRGB(40, 40, 45)
     notification.BackgroundTransparency = 0.1
     notification.Position = UDim2.new(1, 20, 0, 0)
     notification.Parent = self.NotificationFrame
@@ -759,7 +574,7 @@ function BrilloHub:Notify(titulo, mensaje, duracion, tipo)
     notifMessage.Position = UDim2.new(0, 10, 0, 30)
     notifMessage.BackgroundTransparency = 1
     notifMessage.Text = mensaje
-    notifMessage.TextColor3 = self.CurrentTheme.Text
+    notifMessage.TextColor3 = Color3.fromRGB(220, 220, 220)
     notifMessage.Font = Enum.Font.Gotham
     notifMessage.TextSize = 14
     notifMessage.TextWrapped = true
@@ -772,27 +587,22 @@ function BrilloHub:Notify(titulo, mensaje, duracion, tipo)
     closeButton.Position = UDim2.new(1, -25, 0, 5)
     closeButton.BackgroundTransparency = 1
     closeButton.Text = "×"
-    closeButton.TextColor3 = self.CurrentTheme.Text
+    closeButton.TextColor3 = Color3.fromRGB(220, 220, 220)
     closeButton.Font = Enum.Font.GothamBold
     closeButton.TextSize = 18
     closeButton.Parent = notification
     
-    TweenService:Create(
-        notification,
-        TweenInfo.new(0.5, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut),
-        { Position = UDim2.new(0, 0, 0, 0) }
-    ):Play()
+    -- Animación de entrada
+    TweenService:Create(notification, TweenInfo.new(0.5, Enum.EasingStyle.Quint), {Position = UDim2.new(0, 0, 0, 0)}):Play()
     
+    -- Cierre automático
     local closing = false
     
     local function closeNotification()
         if closing then return end
         closing = true
-        TweenService:Create(
-            notification,
-            TweenInfo.new(0.5, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut),
-            { Position = UDim2.new(1, 20, 0, 0) }
-        ):Play()
+        
+        TweenService:Create(notification, TweenInfo.new(0.5, Enum.EasingStyle.Quint), {Position = UDim2.new(1, 20, 0, 0)}):Play()
         wait(0.5)
         notification:Destroy()
     end
@@ -804,6 +614,7 @@ function BrilloHub:Notify(titulo, mensaje, duracion, tipo)
     return notification
 end
 
+-- Obtener categoría por nombre
 function BrilloHub:GetCategory(nombre)
     for _, category in pairs(self.Categories) do
         if category.Name == nombre then
@@ -813,6 +624,7 @@ function BrilloHub:GetCategory(nombre)
     return nil
 end
 
+-- Añadir Dropdown
 function BrilloHub:AddDropdown(categoria, titulo, opciones, predeterminado, callback)
     local category = self:GetCategory(categoria)
     if not category then return end
@@ -823,7 +635,7 @@ function BrilloHub:AddDropdown(categoria, titulo, opciones, predeterminado, call
     local dropdown = Instance.new("Frame")
     dropdown.Name = titulo.."Dropdown"
     dropdown.Size = UDim2.new(1, 0, 0, 35)
-    dropdown.BackgroundColor3 = self.CurrentTheme.Button
+    dropdown.BackgroundColor3 = Color3.fromRGB(40, 40, 45)
     dropdown.ClipsDescendants = true
     dropdown.Parent = category.Container
     
@@ -837,7 +649,7 @@ function BrilloHub:AddDropdown(categoria, titulo, opciones, predeterminado, call
     title.Position = UDim2.new(0, 10, 0, 0)
     title.BackgroundTransparency = 1
     title.Text = titulo
-    title.TextColor3 = self.CurrentTheme.Text
+    title.TextColor3 = Color3.fromRGB(220, 220, 220)
     title.Font = Enum.Font.GothamSemibold
     title.TextSize = 14
     title.TextXAlignment = Enum.TextXAlignment.Left
@@ -849,7 +661,7 @@ function BrilloHub:AddDropdown(categoria, titulo, opciones, predeterminado, call
     arrow.Position = UDim2.new(1, -30, 0, 0)
     arrow.BackgroundTransparency = 1
     arrow.Text = "▼"
-    arrow.TextColor3 = self.CurrentTheme.Text
+    arrow.TextColor3 = Color3.fromRGB(220, 220, 220)
     arrow.Font = Enum.Font.GothamBold
     arrow.TextSize = 14
     arrow.Parent = dropdown
@@ -860,17 +672,18 @@ function BrilloHub:AddDropdown(categoria, titulo, opciones, predeterminado, call
     selectedValue.Position = UDim2.new(1, -130, 0, 0)
     selectedValue.BackgroundTransparency = 1
     selectedValue.Text = selected
-    selectedValue.TextColor3 = self.CurrentTheme.Accent
+    selectedValue.TextColor3 = Color3.fromRGB(0, 120, 255)
     selectedValue.Font = Enum.Font.GothamSemibold
     selectedValue.TextSize = 14
     selectedValue.TextXAlignment = Enum.TextXAlignment.Right
     selectedValue.Parent = dropdown
     
+    -- Opciones
     local optionsFrame = Instance.new("Frame")
     optionsFrame.Name = "Options"
     optionsFrame.Size = UDim2.new(1, -20, 0, #opciones * 25)
     optionsFrame.Position = UDim2.new(0, 10, 0, 35)
-    optionsFrame.BackgroundColor3 = self.CurrentTheme.Button
+    optionsFrame.BackgroundColor3 = Color3.fromRGB(50, 50, 55)
     optionsFrame.Visible = false
     optionsFrame.ZIndex = 5
     optionsFrame.Parent = dropdown
@@ -879,6 +692,7 @@ function BrilloHub:AddDropdown(categoria, titulo, opciones, predeterminado, call
     optionsCorner.CornerRadius = UDim.new(0, 6)
     optionsCorner.Parent = optionsFrame
     
+    -- Crear opciones
     for i, option in ipairs(opciones) do
         local optionButton = Instance.new("TextButton")
         optionButton.Name = option.."Option"
@@ -886,42 +700,33 @@ function BrilloHub:AddDropdown(categoria, titulo, opciones, predeterminado, call
         optionButton.Position = UDim2.new(0, 0, 0, (i-1) * 25)
         optionButton.BackgroundTransparency = 1
         optionButton.Text = option
-        optionButton.TextColor3 = self.CurrentTheme.Text
+        optionButton.TextColor3 = Color3.fromRGB(220, 220, 220)
         optionButton.Font = Enum.Font.Gotham
         optionButton.TextSize = 14
         optionButton.ZIndex = 6
         optionButton.Parent = optionsFrame
         
         optionButton.MouseEnter:Connect(function()
-            TweenService:Create(
-                optionButton,
-                TweenInfo.new(0.15, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut),
-                { BackgroundTransparency = 0.8, BackgroundColor3 = self.CurrentTheme.ButtonHover }
-            ):Play()
+            TweenService:Create(optionButton, TweenInfo.new(0.2), {BackgroundTransparency = 0.8, BackgroundColor3 = Color3.fromRGB(60, 60, 65)}):Play()
         end)
         
         optionButton.MouseLeave:Connect(function()
-            TweenService:Create(
-                optionButton,
-                TweenInfo.new(0.15, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut),
-                { BackgroundTransparency = 1 }
-            ):Play()
+            TweenService:Create(optionButton, TweenInfo.new(0.2), {BackgroundTransparency = 1}):Play()
         end)
         
         optionButton.MouseButton1Click:Connect(function()
             selected = option
             selectedValue.Text = selected
-            TweenService:Create(
-                dropdown,
-                TweenInfo.new(0.3, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut),
-                { Size = UDim2.new(1, 0, 0, 35) }
-            ):Play()
+            
+            TweenService:Create(dropdown, TweenInfo.new(0.3), {Size = UDim2.new(1, 0, 0, 35)}):Play()
             optionsFrame.Visible = false
             arrow.Text = "▼"
+            
             pcall(callback, selected)
         end)
     end
     
+    -- Botón para abrir/cerrar dropdown
     local dropdownButton = Instance.new("TextButton")
     dropdownButton.Name = "DropdownButton"
     dropdownButton.Size = UDim2.new(1, 0, 0, 35)
@@ -933,41 +738,27 @@ function BrilloHub:AddDropdown(categoria, titulo, opciones, predeterminado, call
     
     dropdownButton.MouseButton1Click:Connect(function()
         isOpen = not isOpen
+        
         if isOpen then
-            TweenService:Create(
-                dropdown,
-                TweenInfo.new(0.3, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut),
-                { Size = UDim2.new(1, 0, 0, 35 + optionsFrame.Size.Y.Offset + 10) }
-            ):Play()
+            TweenService:Create(dropdown, TweenInfo.new(0.3), {Size = UDim2.new(1, 0, 0, 35 + optionsFrame.Size.Y.Offset + 10)}):Play()
             optionsFrame.Visible = true
             arrow.Text = "▲"
         else
-            TweenService:Create(
-                dropdown,
-                TweenInfo.new(0.3, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut),
-                { Size = UDim2.new(1, 0, 0, 35) }
-            ):Play()
+            TweenService:Create(dropdown, TweenInfo.new(0.3), {Size = UDim2.new(1, 0, 0, 35)}):Play()
             optionsFrame.Visible = false
             arrow.Text = "▼"
         end
     end)
     
     dropdown.MouseEnter:Connect(function()
-        TweenService:Create(
-            dropdown,
-            TweenInfo.new(0.15, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut),
-            { BackgroundColor3 = self.CurrentTheme.ButtonHover }
-        ):Play()
+        TweenService:Create(dropdown, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(50, 50, 55)}):Play()
     end)
     
     dropdown.MouseLeave:Connect(function()
-        TweenService:Create(
-            dropdown,
-            TweenInfo.new(0.15, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut),
-            { BackgroundColor3 = self.CurrentTheme.Button }
-        ):Play()
+        TweenService:Create(dropdown, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(40, 40, 45)}):Play()
     end)
     
+    -- Función para obtener/establecer valor
     local dropdownFunctions = {}
     
     function dropdownFunctions:Set(newValue)
@@ -985,7 +776,9 @@ function BrilloHub:AddDropdown(categoria, titulo, opciones, predeterminado, call
     function dropdownFunctions:Refresh(newOptions)
         optionsFrame:ClearAllChildren()
         opciones = newOptions
+        
         optionsFrame.Size = UDim2.new(1, -20, 0, #opciones * 25)
+        
         for i, option in ipairs(opciones) do
             local optionButton = Instance.new("TextButton")
             optionButton.Name = option.."Option"
@@ -993,39 +786,33 @@ function BrilloHub:AddDropdown(categoria, titulo, opciones, predeterminado, call
             optionButton.Position = UDim2.new(0, 0, 0, (i-1) * 25)
             optionButton.BackgroundTransparency = 1
             optionButton.Text = option
-            optionButton.TextColor3 = self.CurrentTheme.Text
+            optionButton.TextColor3 = Color3.fromRGB(220, 220, 220)
             optionButton.Font = Enum.Font.Gotham
             optionButton.TextSize = 14
             optionButton.ZIndex = 6
             optionButton.Parent = optionsFrame
+            
             optionButton.MouseEnter:Connect(function()
-                TweenService:Create(
-                    optionButton,
-                    TweenInfo.new(0.15, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut),
-                    { BackgroundTransparency = 0.8, BackgroundColor3 = self.CurrentTheme.ButtonHover }
-                ):Play()
+                TweenService:Create(optionButton, TweenInfo.new(0.2), {BackgroundTransparency = 0.8, BackgroundColor3 = Color3.fromRGB(60, 60, 65)}):Play()
             end)
+            
             optionButton.MouseLeave:Connect(function()
-                TweenService:Create(
-                    optionButton,
-                    TweenInfo.new(0.15, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut),
-                    { BackgroundTransparency = 1 }
-                ):Play()
+                TweenService:Create(optionButton, TweenInfo.new(0.2), {BackgroundTransparency = 1}):Play()
             end)
+            
             optionButton.MouseButton1Click:Connect(function()
                 selected = option
                 selectedValue.Text = selected
-                TweenService:Create(
-                    dropdown,
-                    TweenInfo.new(0.3, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut),
-                    { Size = UDim2.new(1, 0, 0, 35) }
-                ):Play()
+                
+                TweenService:Create(dropdown, TweenInfo.new(0.3), {Size = UDim2.new(1, 0, 0, 35)}):Play()
                 optionsFrame.Visible = false
                 arrow.Text = "▼"
                 isOpen = false
+                
                 pcall(callback, selected)
             end)
         end
+        
         if not table.find(opciones, selected) and #opciones > 0 then
             selected = opciones[1]
             selectedValue.Text = selected
@@ -1038,7 +825,8 @@ function BrilloHub:AddDropdown(categoria, titulo, opciones, predeterminado, call
     return dropdownFunctions
 end
 
-function BrilloHub:AddLabel(categoria, texto, color, fontSize)
+-- Añadir etiqueta de texto
+function BrilloHub:AddLabel(categoria, texto)
     local category = self:GetCategory(categoria)
     if not category then return end
     
@@ -1047,35 +835,26 @@ function BrilloHub:AddLabel(categoria, texto, color, fontSize)
     label.Size = UDim2.new(1, 0, 0, 25)
     label.BackgroundTransparency = 1
     label.Text = texto
-    label.TextColor3 = color or self.CurrentTheme.Text
+    label.TextColor3 = Color3.fromRGB(200, 200, 200)
     label.Font = Enum.Font.GothamSemibold
-    label.TextSize = fontSize or 14
+    label.TextSize = 14
     label.TextXAlignment = Enum.TextXAlignment.Left
     label.Parent = category.Container
     
     local labelFunctions = {}
     
-    function labelFunctions:Set(newText, newColor, newFontSize)
-        label.Text = newText or label.Text
-        if newColor then
-            label.TextColor3 = newColor
-        end
-        if newFontSize then
-            label.TextSize = newFontSize
-        end
+    function labelFunctions:Set(newText)
+        label.Text = newText
     end
     
     function labelFunctions:Get()
-        return {
-            Text = label.Text,
-            Color = label.TextColor3,
-            FontSize = label.TextSize
-        }
+        return label.Text
     end
     
     return labelFunctions
 end
 
+-- Añadir campo de entrada de texto
 function BrilloHub:AddTextbox(categoria, titulo, predeterminado, placeholder, callback)
     local category = self:GetCategory(categoria)
     if not category then return end
@@ -1086,7 +865,7 @@ function BrilloHub:AddTextbox(categoria, titulo, predeterminado, placeholder, ca
     local textbox = Instance.new("Frame")
     textbox.Name = titulo.."Textbox"
     textbox.Size = UDim2.new(1, 0, 0, 35)
-    textbox.BackgroundColor3 = self.CurrentTheme.Button
+    textbox.BackgroundColor3 = Color3.fromRGB(40, 40, 45)
     textbox.Parent = category.Container
     
     local textboxCorner = Instance.new("UICorner")
@@ -1099,7 +878,7 @@ function BrilloHub:AddTextbox(categoria, titulo, predeterminado, placeholder, ca
     title.Position = UDim2.new(0, 10, 0, 0)
     title.BackgroundTransparency = 1
     title.Text = titulo
-    title.TextColor3 = self.CurrentTheme.Text
+    title.TextColor3 = Color3.fromRGB(220, 220, 220)
     title.Font = Enum.Font.GothamSemibold
     title.TextSize = 14
     title.TextXAlignment = Enum.TextXAlignment.Left
@@ -1109,10 +888,10 @@ function BrilloHub:AddTextbox(categoria, titulo, predeterminado, placeholder, ca
     input.Name = "Input"
     input.Size = UDim2.new(0.6, -20, 0, 25)
     input.Position = UDim2.new(0.4, 5, 0.5, -12.5)
-    input.BackgroundColor3 = self.CurrentTheme.Button
+    input.BackgroundColor3 = Color3.fromRGB(50, 50, 55)
     input.Text = predeterminado
     input.PlaceholderText = placeholder
-    input.TextColor3 = self.CurrentTheme.Text
+    input.TextColor3 = Color3.fromRGB(220, 220, 220)
     input.PlaceholderColor3 = Color3.fromRGB(150, 150, 150)
     input.Font = Enum.Font.Gotham
     input.TextSize = 14
@@ -1124,40 +903,26 @@ function BrilloHub:AddTextbox(categoria, titulo, predeterminado, placeholder, ca
     inputCorner.Parent = input
     
     textbox.MouseEnter:Connect(function()
-        TweenService:Create(
-            textbox,
-            TweenInfo.new(0.15, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut),
-            { BackgroundColor3 = self.CurrentTheme.ButtonHover }
-        ):Play()
+        TweenService:Create(textbox, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(50, 50, 55)}):Play()
     end)
     
     textbox.MouseLeave:Connect(function()
-        TweenService:Create(
-            textbox,
-            TweenInfo.new(0.15, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut),
-            { BackgroundColor3 = self.CurrentTheme.Button }
-        ):Play()
+        TweenService:Create(textbox, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(40, 40, 45)}):Play()
     end)
     
     input.Focused:Connect(function()
-        TweenService:Create(
-            input,
-            TweenInfo.new(0.15, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut),
-            { BackgroundColor3 = self.CurrentTheme.ButtonHover }
-        ):Play()
+        TweenService:Create(input, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(60, 60, 65)}):Play()
     end)
     
     input.FocusLost:Connect(function(enterPressed)
-        TweenService:Create(
-            input,
-            TweenInfo.new(0.15, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut),
-            { BackgroundColor3 = self.CurrentTheme.Button }
-        ):Play()
+        TweenService:Create(input, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(50, 50, 55)}):Play()
+        
         if enterPressed then
             pcall(callback, input.Text)
         end
     end)
     
+    -- Función para obtener/establecer valor
     local textboxFunctions = {}
     
     function textboxFunctions:Set(text)
@@ -1172,6 +937,7 @@ function BrilloHub:AddTextbox(categoria, titulo, predeterminado, placeholder, ca
     return textboxFunctions
 end
 
+-- Añadir divisor
 function BrilloHub:AddDivider(categoria)
     local category = self:GetCategory(categoria)
     if not category then return end
@@ -1179,13 +945,14 @@ function BrilloHub:AddDivider(categoria)
     local divider = Instance.new("Frame")
     divider.Name = "Divider"
     divider.Size = UDim2.new(1, 0, 0, 1)
-    divider.BackgroundColor3 = self.CurrentTheme.ButtonHover
+    divider.BackgroundColor3 = Color3.fromRGB(70, 70, 75)
     divider.BorderSizePixel = 0
     divider.Parent = category.Container
     
     return divider
 end
 
+-- Añadir keybind
 function BrilloHub:AddKeybind(categoria, titulo, teclaDefault, callback)
     local category = self:GetCategory(categoria)
     if not category then return end
@@ -1195,7 +962,7 @@ function BrilloHub:AddKeybind(categoria, titulo, teclaDefault, callback)
     local keybind = Instance.new("Frame")
     keybind.Name = titulo.."Keybind"
     keybind.Size = UDim2.new(1, 0, 0, 35)
-    keybind.BackgroundColor3 = self.CurrentTheme.Button
+    keybind.BackgroundColor3 = Color3.fromRGB(40, 40, 45)
     keybind.Parent = category.Container
     
     local keybindCorner = Instance.new("UICorner")
@@ -1208,7 +975,7 @@ function BrilloHub:AddKeybind(categoria, titulo, teclaDefault, callback)
     title.Position = UDim2.new(0, 10, 0, 0)
     title.BackgroundTransparency = 1
     title.Text = titulo
-    title.TextColor3 = self.CurrentTheme.Text
+    title.TextColor3 = Color3.fromRGB(220, 220, 220)
     title.Font = Enum.Font.GothamSemibold
     title.TextSize = 14
     title.TextXAlignment = Enum.TextXAlignment.Left
@@ -1218,9 +985,9 @@ function BrilloHub:AddKeybind(categoria, titulo, teclaDefault, callback)
     keyDisplay.Name = "KeyDisplay"
     keyDisplay.Size = UDim2.new(0, 100, 0, 25)
     keyDisplay.Position = UDim2.new(1, -110, 0.5, -12.5)
-    keyDisplay.BackgroundColor3 = self.CurrentTheme.Button
+    keyDisplay.BackgroundColor3 = Color3.fromRGB(50, 50, 55)
     keyDisplay.Text = keyName
-    keyDisplay.TextColor3 = self.CurrentTheme.Text
+    keyDisplay.TextColor3 = Color3.fromRGB(220, 220, 220)
     keyDisplay.Font = Enum.Font.Gotham
     keyDisplay.TextSize = 14
     keyDisplay.Parent = keybind
@@ -1229,37 +996,46 @@ function BrilloHub:AddKeybind(categoria, titulo, teclaDefault, callback)
     keyDisplayCorner.CornerRadius = UDim.new(0, 4)
     keyDisplayCorner.Parent = keyDisplay
     
+    -- Variables
     local currentKey = teclaDefault
     local isChanging = false
     local connection
     
+    -- Función para actualizar visualización
     local function updateDisplay()
         keyDisplay.Text = currentKey and currentKey.Name or "None"
     end
     
+    -- Detectar cambio de tecla
     keyDisplay.MouseButton1Click:Connect(function()
         if isChanging then return end
+        
         isChanging = true
         keyDisplay.Text = "..."
-        keyDisplay.TextColor3 = self.CurrentTheme.Accent
+        keyDisplay.TextColor3 = Color3.fromRGB(0, 150, 255)
+        
         if connection then
             connection:Disconnect()
         end
+        
         connection = UserInputService.InputBegan:Connect(function(input, gameProcessed)
             if not gameProcessed and input.UserInputType == Enum.UserInputType.Keyboard then
                 currentKey = input.KeyCode
                 updateDisplay()
                 isChanging = false
-                keyDisplay.TextColor3 = self.CurrentTheme.Text
+                keyDisplay.TextColor3 = Color3.fromRGB(220, 220, 220)
+                
                 if connection then
                     connection:Disconnect()
                     connection = nil
                 end
+                
                 pcall(callback, currentKey)
             end
         end)
     end)
     
+    -- Detectar cuando se presione la tecla
     UserInputService.InputBegan:Connect(function(input, gameProcessed)
         if not gameProcessed and currentKey and input.KeyCode == currentKey then
             pcall(callback, currentKey)
@@ -1267,21 +1043,14 @@ function BrilloHub:AddKeybind(categoria, titulo, teclaDefault, callback)
     end)
     
     keybind.MouseEnter:Connect(function()
-        TweenService:Create(
-            keybind,
-            TweenInfo.new(0.15, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut),
-            { BackgroundColor3 = self.CurrentTheme.ButtonHover }
-        ):Play()
+        TweenService:Create(keybind, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(50, 50, 55)}):Play()
     end)
     
     keybind.MouseLeave:Connect(function()
-        TweenService:Create(
-            keybind,
-            TweenInfo.new(0.15, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut),
-            { BackgroundColor3 = self.CurrentTheme.Button }
-        ):Play()
+        TweenService:Create(keybind, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(40, 40, 45)}):Play()
     end)
     
+    -- Función para obtener/establecer valor
     local keybindFunctions = {}
     
     function keybindFunctions:Set(key)
@@ -1294,174 +1063,6 @@ function BrilloHub:AddKeybind(categoria, titulo, teclaDefault, callback)
     end
     
     return keybindFunctions
-end
-
-function BrilloHub:AddGroup(categoria, nombre)
-    local category = self:GetCategory(categoria)
-    if not category then return end
-    
-    local group = Instance.new("Frame")
-    group.Name = nombre.."Group"
-    group.Size = UDim2.new(1, 0, 0, 30)
-    group.BackgroundColor3 = self.CurrentTheme.Button
-    group.Parent = category.Container
-    
-    local groupCorner = Instance.new("UICorner")
-    groupCorner.CornerRadius = UDim.new(0, 6)
-    groupCorner.Parent = group
-    
-    local groupTitle = Instance.new("TextLabel")
-    groupTitle.Name = "Title"
-    groupTitle.Size = UDim2.new(1, -40, 0, 30)
-    groupTitle.Position = UDim2.new(0, 10, 0, 0)
-    groupTitle.BackgroundTransparency = 1
-    groupTitle.Text = nombre
-    groupTitle.TextColor3 = self.CurrentTheme.Text
-    groupTitle.Font = Enum.Font.GothamBold
-    groupTitle.TextSize = 14
-    groupTitle.TextXAlignment = Enum.TextXAlignment.Left
-    groupTitle.Parent = group
-    
-    local toggleButton = Instance.new("TextButton")
-    toggleButton.Name = "ToggleButton"
-    toggleButton.Size = UDim2.new(0, 20, 0, 20)
-    toggleButton.Position = UDim2.new(1, -30, 0, 5)
-    toggleButton.BackgroundTransparency = 1
-    toggleButton.Text = "▼"
-    toggleButton.TextColor3 = self.CurrentTheme.Text
-    toggleButton.Font = Enum.Font.GothamBold
-    toggleButton.TextSize = 14
-    toggleButton.Parent = group
-    
-    local contentFrame = Instance.new("Frame")
-    contentFrame.Name = "Content"
-    contentFrame.Size = UDim2.new(1, -10, 0, 0)
-    contentFrame.Position = UDim2.new(0, 5, 0, 30)
-    contentFrame.BackgroundTransparency = 1
-    contentFrame.AutomaticSize = Enum.AutomaticSize.Y
-    contentFrame.Visible = true
-    contentFrame.Parent = group
-    
-    local contentLayout = Instance.new("UIListLayout")
-    contentLayout.Padding = UDim.new(0, 8)
-    contentLayout.SortOrder = Enum.SortOrder.LayoutOrder
-    contentLayout.Parent = contentFrame
-    
-    local isExpanded = true
-    
-    toggleButton.MouseButton1Click:Connect(function()
-        isExpanded = not isExpanded
-        if isExpanded then
-            contentFrame.Visible = true
-            toggleButton.Text = "▼"
-            TweenService:Create(
-                group,
-                TweenInfo.new(0.3, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut),
-                { Size = UDim2.new(1, 0, 0, 30 + contentFrame.Size.Y.Offset) }
-            ):Play()
-        else
-            contentFrame.Visible = false
-            toggleButton.Text = "▲"
-            TweenService:Create(
-                group,
-                TweenInfo.new(0.3, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut),
-                { Size = UDim2.new(1, 0, 0, 30) }
-            ):Play()
-        end
-    end)
-    
-    local groupFunctions = {}
-    
-    function groupFunctions:AddLabel(texto, color, fontSize)
-        local label = Instance.new("TextLabel")
-        label.Name = "Label"
-        label.Size = UDim2.new(1, 0, 0, 25)
-        label.BackgroundTransparency = 1
-        label.Text = texto
-        label.TextColor3 = color or self.CurrentTheme.Text
-        label.Font = Enum.Font.GothamSemibold
-        label.TextSize = fontSize or 14
-        label.TextXAlignment = Enum.TextXAlignment.Left
-        label.Parent = contentFrame
-        
-        local labelFunctions = {}
-        
-        function labelFunctions:Set(newText, newColor, newFontSize)
-            label.Text = newText or label.Text
-            if newColor then
-                label.TextColor3 = newColor
-            end
-            if newFontSize then
-                label.TextSize = newFontSize
-            end
-        end
-        
-        function labelFunctions:Get()
-            return {
-                Text = label.Text,
-                Color = label.TextColor3,
-                FontSize = label.TextSize
-            }
-        end
-        
-        return labelFunctions
-    end
-    
-    function groupFunctions:AddButton(titulo, callback)
-        local button = Instance.new("TextButton")
-        button.Name = titulo.."Button"
-        button.Size = UDim2.new(1, 0, 0, 35)
-        button.BackgroundColor3 = self.CurrentTheme.Button
-        button.Text = titulo
-        button.TextColor3 = self.CurrentTheme.Text
-        button.Font = Enum.Font.GothamSemibold
-        button.TextSize = 14
-        button.Parent = contentFrame
-        
-        local buttonCorner = Instance.new("UICorner")
-        buttonCorner.CornerRadius = UDim.new(0, 6)
-        buttonCorner.Parent = button
-        
-        button.MouseEnter:Connect(function()
-            TweenService:Create(
-                button,
-                TweenInfo.new(0.15, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut),
-                { BackgroundColor3 = self.CurrentTheme.ButtonHover, Size = UDim2.new(1, 2, 0, 37) }
-            ):Play()
-        end)
-        
-        button.MouseLeave:Connect(function()
-            TweenService:Create(
-                button,
-                TweenInfo.new(0.15, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut),
-                { BackgroundColor3 = self.CurrentTheme.Button, Size = UDim2.new(1, 0, 0, 35) }
-            ):Play()
-        end)
-        
-        button.MouseButton1Down:Connect(function()
-            TweenService:Create(
-                button,
-                TweenInfo.new(0.1, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut),
-                { BackgroundColor3 = self.CurrentTheme.ButtonActive }
-            ):Play()
-        end)
-        
-        button.MouseButton1Up:Connect(function()
-            TweenService:Create(
-                button,
-                TweenInfo.new(0.1, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut),
-                { BackgroundColor3 = self.CurrentTheme.ButtonHover }
-            ):Play()
-        end)
-        
-        button.MouseButton1Click:Connect(function()
-            pcall(callback)
-        end)
-        
-        return button
-    end
-    
-    return groupFunctions
 end
 
 return BrilloHub
