@@ -1,5 +1,6 @@
 -- UI Library para Roblox
--- Creado con soporte completo para toggles, color pickers, keybinds, sliders y animaciones
+-- Versión mejorada con soporte completo para toggles, color pickers, keybinds, sliders, dropdowns, textboxes, y animaciones
+-- Optimizado para Roblox Studio y ejecutores de scripts, siguiendo las mejores prácticas de la plataforma
 
 local Library = {}
 local TweenService = game:GetService("TweenService")
@@ -33,7 +34,8 @@ local function CreateTween(object, properties, duration, style, direction)
         style or Enum.EasingStyle.Quart,
         direction or Enum.EasingDirection.Out
     )
-    return TweenService:Create(object, tweenInfo, properties)
+    local tween = TweenService:Create(object, tweenInfo, properties)
+    return tween
 end
 
 local function RippleEffect(button, color)
@@ -42,7 +44,7 @@ local function RippleEffect(button, color)
     ripple.BackgroundColor3 = color or Library.Theme.Accent
     ripple.BorderSizePixel = 0
     ripple.Size = UDim2.new(0, 0, 0, 0)
-    ripple.Position = UDim2.new(0.5, 0, 0.5, 0)
+    ripple.Position = UDim2.new(0, Mouse.X - button.AbsolutePosition.X, 0, Mouse.Y - button.AbsolutePosition.Y)
     ripple.AnchorPoint = Vector2.new(0.5, 0.5)
     ripple.ZIndex = button.ZIndex + 1
     ripple.Parent = button
@@ -52,9 +54,9 @@ local function RippleEffect(button, color)
     corner.Parent = ripple
     
     local tween = CreateTween(ripple, {
-        Size = UDim2.new(1.5, 0, 1.5, 0),
+        Size = UDim2.new(2, 0, 2, 0),
         BackgroundTransparency = 1
-    }, 0.5)
+    }, 0.4, Enum.EasingStyle.Sine)
     
     tween:Play()
     tween.Completed:Connect(function()
@@ -83,13 +85,15 @@ function Library:CreateWindow(config)
     config.Name = config.Name or "UI Library"
     config.Size = config.Size or UDim2.new(0, 500, 0, 400)
     config.Position = config.Position or UDim2.new(0.5, -250, 0.5, -200)
+    config.MinSize = config.MinSize or Vector2.new(300, 200)
     
     -- ScreenGui principal
     local ScreenGui = Instance.new("ScreenGui")
-    ScreenGui.Name = "UILibrary"
+    ScreenGui.Name = "UILibrary_" .. tostring(math.random(1000, 9999)) -- Nombre único para evitar conflictos
     ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
     ScreenGui.ResetOnSpawn = false
     ScreenGui.Parent = CoreGui
+    ScreenGui.IgnoreGuiInset = true -- Ignorar barras del sistema
     
     -- Ventana principal
     local MainFrame = Instance.new("Frame")
@@ -110,9 +114,9 @@ function Library:CreateWindow(config)
     Shadow.Size = UDim2.new(1, 20, 1, 20)
     Shadow.Position = UDim2.new(0, -10, 0, -10)
     Shadow.BackgroundTransparency = 1
-    Shadow.Image = "rbxasset://textures/ui/GuiImagePlaceholder.png"
+    Shadow.Image = "rbxasset://textures/ui/DropShadow.png"
     Shadow.ImageColor3 = Color3.fromRGB(0, 0, 0)
-    Shadow.ImageTransparency = 0.5
+    Shadow.ImageTransparency = 0.6
     Shadow.ZIndex = MainFrame.ZIndex - 1
     Shadow.Parent = MainFrame
     
@@ -128,7 +132,7 @@ function Library:CreateWindow(config)
     
     local TitleLabel = Instance.new("TextLabel")
     TitleLabel.Name = "Title"
-    TitleLabel.Size = UDim2.new(1, -50, 1, 0)
+    TitleLabel.Size = UDim2.new(1, -80, 1, 0)
     TitleLabel.Position = UDim2.new(0, 10, 0, 0)
     TitleLabel.BackgroundTransparency = 1
     TitleLabel.Text = config.Name
@@ -136,29 +140,44 @@ function Library:CreateWindow(config)
     TitleLabel.TextSize = 16
     TitleLabel.Font = Enum.Font.GothamBold
     TitleLabel.TextXAlignment = Enum.TextXAlignment.Left
+    TitleLabel.TextTruncate = Enum.TextTruncate.AtEnd
     TitleLabel.Parent = TitleBar
     
-    -- Botón de cerrar
+    -- Botones de control
+    local ControlFrame = Instance.new("Frame")
+    ControlFrame.Name = "ControlFrame"
+    ControlFrame.Size = UDim2.new(0, 90, 0, 30)
+    ControlFrame.Position = UDim2.new(1, -95, 0, 5)
+    ControlFrame.BackgroundTransparency = 1
+    ControlFrame.Parent = TitleBar
+    
+    local MinimizeButton = Instance.new("TextButton")
+    MinimizeButton.Name = "MinimizeButton"
+    MinimizeButton.Size = UDim2.new(0, 30, 0, 30)
+    MinimizeButton.Position = UDim2.new(0, 0, 0, 0)
+    MinimizeButton.BackgroundColor3 = Library.Theme.Warning
+    MinimizeButton.BorderSizePixel = 0
+    MinimizeButton.Text = "−"
+    MinimizeButton.TextColor3 = Library.Theme.Text
+    MinimizeButton.TextSize = 18
+    MinimizeButton.Font = Enum.Font.GothamBold
+    MinimizeButton.Parent = ControlFrame
+    
+    CreateCorner(MinimizeButton, 15)
+    
     local CloseButton = Instance.new("TextButton")
     CloseButton.Name = "CloseButton"
     CloseButton.Size = UDim2.new(0, 30, 0, 30)
-    CloseButton.Position = UDim2.new(1, -35, 0, 5)
+    CloseButton.Position = UDim2.new(0, 60, 0, 0)
     CloseButton.BackgroundColor3 = Library.Theme.Error
     CloseButton.BorderSizePixel = 0
     CloseButton.Text = "×"
     CloseButton.TextColor3 = Library.Theme.Text
     CloseButton.TextSize = 18
     CloseButton.Font = Enum.Font.GothamBold
-    CloseButton.Parent = TitleBar
+    CloseButton.Parent = ControlFrame
     
     CreateCorner(CloseButton, 15)
-    
-    CloseButton.MouseButton1Click:Connect(function()
-        RippleEffect(CloseButton, Library.Theme.Text)
-        CreateTween(MainFrame, {Size = UDim2.new(0, 0, 0, 0)}, 0.3):Play()
-        wait(0.3)
-        ScreenGui:Destroy()
-    end)
     
     -- Contenedor de pestañas
     local TabContainer = Instance.new("Frame")
@@ -174,6 +193,10 @@ function Library:CreateWindow(config)
     TabList.Padding = UDim.new(0, 2)
     TabList.Parent = TabContainer
     
+    local TabPadding = Instance.new("UIPadding")
+    TabPadding.PaddingTop = UDim.new(0, 5)
+    TabPadding.Parent = TabContainer
+    
     -- Contenedor de contenido
     local ContentContainer = Instance.new("Frame")
     ContentContainer.Name = "ContentContainer"
@@ -182,6 +205,17 @@ function Library:CreateWindow(config)
     ContentContainer.BackgroundTransparency = 1
     ContentContainer.BorderSizePixel = 0
     ContentContainer.Parent = MainFrame
+    
+    -- Resize handle
+    local ResizeHandle = Instance.new("Frame")
+    ResizeHandle.Name = "ResizeHandle"
+    ResizeHandle.Size = UDim2.new(0, 10, 0, 10)
+    ResizeHandle.Position = UDim2.new(1, -10, 1, -10)
+    ResizeHandle.BackgroundColor3 = Library.Theme.Accent
+    ResizeHandle.BorderSizePixel = 0
+    ResizeHandle.Parent = MainFrame
+    
+    CreateCorner(ResizeHandle, 3)
     
     -- Sistema de arrastrar ventana
     local dragging = false
@@ -209,17 +243,79 @@ function Library:CreateWindow(config)
         end
     end)
     
+    -- Sistema de redimensionamiento
+    local resizing = false
+    local resizeStart = nil
+    local startSize = nil
+    
+    ResizeHandle.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            resizing = true
+            resizeStart = input.Position
+            startSize = MainFrame.Size
+        end
+    end)
+    
+    UserInputService.InputChanged:Connect(function(input)
+        if resizing and input.UserInputType == Enum.UserInputType.MouseMovement then
+            local delta = input.Position - resizeStart
+            local newWidth = math.max(config.MinSize.X, startSize.X.Offset + delta.X)
+            local newHeight = math.max(config.MinSize.Y, startSize.Y.Offset + delta.Y)
+            MainFrame.Size = UDim2.new(0, newWidth, 0, newHeight)
+        end
+    end)
+    
+    UserInputService.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            resizing = false
+        end
+    end)
+    
+    -- Sistema de minimización
+    local isMinimized = false
+    local originalSize = config.Size
+    
+    MinimizeButton.MouseButton1Click:Connect(function()
+        RippleEffect(MinimizeButton)
+        isMinimized = not isMinimized
+        if isMinimized then
+            originalSize = MainFrame.Size
+            CreateTween(MainFrame, {Size = UDim2.new(0, 200, 0, 40)}, 0.3):Play()
+            ContentContainer.Visible = false
+            TabContainer.Visible = false
+            ResizeHandle.Visible = false
+            MinimizeButton.Text = "+"
+        else
+            CreateTween(MainFrame, {Size = originalSize}, 0.3):Play()
+            ContentContainer.Visible = true
+            TabContainer.Visible = true
+            ResizeHandle.Visible = true
+            MinimizeButton.Text = "−"
+        end
+    end)
+    
+    CloseButton.MouseButton1Click:Connect(function()
+        RippleEffect(CloseButton)
+        CreateTween(MainFrame, {Size = UDim2.new(0, 0, 0, 0)}, 0.3, Enum.EasingStyle.Back):Play()
+        task.wait(0.3)
+        ScreenGui:Destroy()
+    end)
+    
     -- Objeto Window
     local Window = {
         Tabs = {},
-        CurrentTab = nil
+        CurrentTab = nil,
+        ScreenGui = ScreenGui
     }
     
     -- Función para crear pestañas
     function Window:CreateTab(name)
         local Tab = {
             Name = name,
-            Elements = {}
+            Elements = {},
+            Content = nil,
+            Button = nil,
+            List = nil
         }
         
         -- Botón de pestaña
@@ -232,6 +328,7 @@ function Library:CreateWindow(config)
         TabButton.TextColor3 = Library.Theme.TextDark
         TabButton.TextSize = 14
         TabButton.Font = Enum.Font.Gotham
+        TabButton.TextTruncate = Enum.TextTruncate.AtEnd
         TabButton.Parent = TabContainer
         
         CreateCorner(TabButton, 6)
@@ -242,7 +339,7 @@ function Library:CreateWindow(config)
         TabContent.Size = UDim2.new(1, 0, 1, 0)
         TabContent.BackgroundTransparency = 1
         TabContent.BorderSizePixel = 0
-        TabContent.ScrollBarThickness = 6
+        TabContent.ScrollBarThickness = 4
         TabContent.ScrollBarImageColor3 = Library.Theme.Accent
         TabContent.CanvasSize = UDim2.new(0, 0, 0, 0)
         TabContent.Visible = false
@@ -307,7 +404,7 @@ function Library:CreateWindow(config)
             config.Flag = config.Flag
             
             local ToggleFrame = Instance.new("Frame")
-            ToggleFrame.Name = "Toggle"
+            ToggleFrame.Name = "Toggle_" .. config.Name
             ToggleFrame.Size = UDim2.new(1, 0, 0, 40)
             ToggleFrame.BackgroundColor3 = Library.Theme.Secondary
             ToggleFrame.BorderSizePixel = 0
@@ -324,6 +421,7 @@ function Library:CreateWindow(config)
             ToggleLabel.TextSize = 14
             ToggleLabel.Font = Enum.Font.Gotham
             ToggleLabel.TextXAlignment = Enum.TextXAlignment.Left
+            ToggleLabel.TextTruncate = Enum.TextTruncate.AtEnd
             ToggleLabel.Parent = ToggleFrame
             
             local ToggleButton = Instance.new("TextButton")
@@ -352,13 +450,15 @@ function Library:CreateWindow(config)
             end
             
             local function UpdateToggle()
-                CreateTween(ToggleButton, {
+                local tween1 = CreateTween(ToggleButton, {
                     BackgroundColor3 = toggled and Library.Theme.Success or Library.Theme.Background
-                }, 0.2):Play()
-                
-                CreateTween(ToggleCircle, {
+                }, 0.2)
+                local tween2 = CreateTween(ToggleCircle, {
                     Position = toggled and UDim2.new(1, -18, 0.5, -8) or UDim2.new(0, 2, 0.5, -8)
-                }, 0.2):Play()
+                }, 0.2)
+                
+                tween1:Play()
+                tween2:Play()
                 
                 config.Callback(toggled)
                 
@@ -377,6 +477,9 @@ function Library:CreateWindow(config)
                 Set = function(value)
                     toggled = value
                     UpdateToggle()
+                end,
+                Get = function()
+                    return toggled
                 end
             }
         end
@@ -387,13 +490,13 @@ function Library:CreateWindow(config)
             config.Name = config.Name or "Slider"
             config.Min = config.Min or 0
             config.Max = config.Max or 100
-            config.Default = config.Default or config.Min
+            config.Default = math.clamp(config.Default or config.Min, config.Min, config.Max)
             config.Callback = config.Callback or function() end
             config.Flag = config.Flag
             config.Decimals = config.Decimals or 0
             
             local SliderFrame = Instance.new("Frame")
-            SliderFrame.Name = "Slider"
+            SliderFrame.Name = "Slider_" .. config.Name
             SliderFrame.Size = UDim2.new(1, 0, 0, 50)
             SliderFrame.BackgroundColor3 = Library.Theme.Secondary
             SliderFrame.BorderSizePixel = 0
@@ -410,6 +513,7 @@ function Library:CreateWindow(config)
             SliderLabel.TextSize = 14
             SliderLabel.Font = Enum.Font.Gotham
             SliderLabel.TextXAlignment = Enum.TextXAlignment.Left
+            SliderLabel.TextTruncate = Enum.TextTruncate.AtEnd
             SliderLabel.Parent = SliderFrame
             
             local ValueLabel = Instance.new("TextLabel")
@@ -461,7 +565,7 @@ function Library:CreateWindow(config)
                 if config.Decimals == 0 then
                     newValue = math.floor(newValue)
                 else
-                    newValue = math.floor(newValue * (10^config.Decimals)) / (10^config.Decimals)
+                    newValue = tonumber(string.format("%." .. config.Decimals .. "f", newValue))
                 end
                 
                 value = newValue
@@ -480,7 +584,7 @@ function Library:CreateWindow(config)
             end
             
             SliderTrack.InputBegan:Connect(function(input)
-                if input.UserInputType == Enum.UserInputType.MouseButton1 then
+                if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
                     dragging = true
                     local percentage = math.clamp((input.Position.X - SliderTrack.AbsolutePosition.X) / SliderTrack.AbsoluteSize.X, 0, 1)
                     local newValue = config.Min + (config.Max - config.Min) * percentage
@@ -489,7 +593,7 @@ function Library:CreateWindow(config)
             end)
             
             UserInputService.InputChanged:Connect(function(input)
-                if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+                if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
                     local percentage = math.clamp((input.Position.X - SliderTrack.AbsolutePosition.X) / SliderTrack.AbsoluteSize.X, 0, 1)
                     local newValue = config.Min + (config.Max - config.Min) * percentage
                     UpdateSlider(newValue)
@@ -497,7 +601,7 @@ function Library:CreateWindow(config)
             end)
             
             UserInputService.InputEnded:Connect(function(input)
-                if input.UserInputType == Enum.UserInputType.MouseButton1 then
+                if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
                     dragging = false
                 end
             end)
@@ -507,6 +611,9 @@ function Library:CreateWindow(config)
             return {
                 Set = function(newValue)
                     UpdateSlider(newValue)
+                end,
+                Get = function()
+                    return value
                 end
             }
         end
@@ -518,7 +625,7 @@ function Library:CreateWindow(config)
             config.Callback = config.Callback or function() end
             
             local ButtonFrame = Instance.new("TextButton")
-            ButtonFrame.Name = "Button"
+            ButtonFrame.Name = "Button_" .. config.Name
             ButtonFrame.Size = UDim2.new(1, 0, 0, 35)
             ButtonFrame.BackgroundColor3 = Library.Theme.Accent
             ButtonFrame.BorderSizePixel = 0
@@ -526,12 +633,13 @@ function Library:CreateWindow(config)
             ButtonFrame.TextColor3 = Library.Theme.Text
             ButtonFrame.TextSize = 14
             ButtonFrame.Font = Enum.Font.GothamBold
+            ButtonFrame.TextTruncate = Enum.TextTruncate.AtEnd
             ButtonFrame.Parent = TabContent
             
             CreateCorner(ButtonFrame, 6)
             
             ButtonFrame.MouseButton1Click:Connect(function()
-                RippleEffect(ButtonFrame, Library.Theme.Text)
+                RippleEffect(ButtonFrame)
                 config.Callback()
             end)
             
@@ -546,6 +654,12 @@ function Library:CreateWindow(config)
             ButtonFrame.MouseLeave:Connect(function()
                 CreateTween(ButtonFrame, {BackgroundColor3 = Library.Theme.Accent}, 0.2):Play()
             end)
+            
+            return {
+                Click = function()
+                    config.Callback()
+                end
+            }
         end
         
         -- Keybind
@@ -557,7 +671,7 @@ function Library:CreateWindow(config)
             config.Flag = config.Flag
             
             local KeybindFrame = Instance.new("Frame")
-            KeybindFrame.Name = "Keybind"
+            KeybindFrame.Name = "Keybind_" .. config.Name
             KeybindFrame.Size = UDim2.new(1, 0, 0, 40)
             KeybindFrame.BackgroundColor3 = Library.Theme.Secondary
             KeybindFrame.BorderSizePixel = 0
@@ -574,6 +688,7 @@ function Library:CreateWindow(config)
             KeybindLabel.TextSize = 14
             KeybindLabel.Font = Enum.Font.Gotham
             KeybindLabel.TextXAlignment = Enum.TextXAlignment.Left
+            KeybindLabel.TextTruncate = Enum.TextTruncate.AtEnd
             KeybindLabel.Parent = KeybindFrame
             
             local KeybindButton = Instance.new("TextButton")
@@ -616,16 +731,38 @@ function Library:CreateWindow(config)
                         if config.Flag then
                             Library.Flags[config.Flag] = currentKey
                         end
+                    elseif input.UserInputType == Enum.UserInputType.MouseButton1 then
+                        KeybindButton.Text = currentKey.Name
+                        KeybindButton.BackgroundColor3 = Library.Theme.Background
+                        listening = false
+                        connection:Disconnect()
                     end
                 end)
+                
+                table.insert(Library.Connections, connection)
             end)
             
-            UserInputService.InputBegan:Connect(function(input, gameProcessed)
+            local inputConnection = UserInputService.InputBegan:Connect(function(input, gameProcessed)
                 if gameProcessed or listening then return end
                 if input.KeyCode == currentKey then
                     config.Callback()
                 end
             end)
+            
+            table.insert(Library.Connections, inputConnection)
+            
+            return {
+                Set = function(newKey)
+                    currentKey = newKey
+                    KeybindButton.Text = newKey.Name
+                    if config.Flag then
+                        Library.Flags[config.Flag] = newKey
+                    end
+                end,
+                Get = function()
+                    return currentKey
+                end
+            }
         end
         
         -- Color Picker
@@ -637,7 +774,7 @@ function Library:CreateWindow(config)
             config.Flag = config.Flag
             
             local ColorFrame = Instance.new("Frame")
-            ColorFrame.Name = "ColorPicker"
+            ColorFrame.Name = "ColorPicker_" .. config.Name
             ColorFrame.Size = UDim2.new(1, 0, 0, 40)
             ColorFrame.BackgroundColor3 = Library.Theme.Secondary
             ColorFrame.BorderSizePixel = 0
@@ -654,6 +791,7 @@ function Library:CreateWindow(config)
             ColorLabel.TextSize = 14
             ColorLabel.Font = Enum.Font.Gotham
             ColorLabel.TextXAlignment = Enum.TextXAlignment.Left
+            ColorLabel.TextTruncate = Enum.TextTruncate.AtEnd
             ColorLabel.Parent = ColorFrame
             
             local ColorPreview = Instance.new("Frame")
@@ -688,7 +826,7 @@ function Library:CreateWindow(config)
                 
                 -- Crear ventana del color picker
                 colorPicker = Instance.new("Frame")
-                colorPicker.Name = "ColorPicker"
+                colorPicker.Name = "ColorPickerWindow"
                 colorPicker.Size = UDim2.new(0, 250, 0, 200)
                 colorPicker.Position = UDim2.new(0, ColorFrame.AbsolutePosition.X, 0, ColorFrame.AbsolutePosition.Y + 45)
                 colorPicker.BackgroundColor3 = Library.Theme.Background
@@ -700,46 +838,24 @@ function Library:CreateWindow(config)
                 CreateStroke(colorPicker, Library.Theme.Secondary, 2)
                 
                 -- Selector de color principal
-                local ColorCanvas = Instance.new("Frame")
+                local ColorCanvas = Instance.new("ImageLabel")
                 ColorCanvas.Size = UDim2.new(1, -60, 1, -60)
                 ColorCanvas.Position = UDim2.new(0, 10, 0, 10)
-                ColorCanvas.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
-                ColorCanvas.BorderSizePixel = 0
+                ColorCanvas.BackgroundTransparency = 1
+                ColorCanvas.Image = "rbxasset://textures/ui/ColorPicker.png"
                 ColorCanvas.Parent = colorPicker
                 
                 CreateCorner(ColorCanvas, 4)
                 
-                -- Gradiente de saturación
-                local SaturationGradient = Instance.new("Frame")
-                SaturationGradient.Size = UDim2.new(1, 0, 1, 0)
-                SaturationGradient.BackgroundTransparency = 1
-                SaturationGradient.Parent = ColorCanvas
+                -- Cursor del selector
+                local ColorCursor = Instance.new("Frame")
+                ColorCursor.Size = UDim2.new(0, 8, 0, 8)
+                ColorCursor.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+                ColorCursor.BorderColor3 = Color3.fromRGB(0, 0, 0)
+                ColorCursor.BorderSizePixel = 1
+                ColorCursor.Parent = ColorCanvas
                 
-                local SatGrad = Instance.new("UIGradient")
-                SatGrad.Color = ColorSequence.new{
-                    ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 255, 255)),
-                    ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 255, 255))
-                }
-                SatGrad.Transparency = NumberSequence.new{
-                    NumberSequenceKeypoint.new(0, 1),
-                    NumberSequenceKeypoint.new(1, 0)
-                }
-                SatGrad.Parent = SaturationGradient
-                
-                -- Gradiente de brillo
-                local BrightnessGradient = Instance.new("Frame")
-                BrightnessGradient.Size = UDim2.new(1, 0, 1, 0)
-                BrightnessGradient.BackgroundTransparency = 1
-                BrightnessGradient.Parent = SaturationGradient
-                
-                local BrightGrad = Instance.new("UIGradient")
-                BrightGrad.Color = ColorSequence.new(Color3.fromRGB(0, 0, 0))
-                BrightGrad.Transparency = NumberSequence.new{
-                    NumberSequenceKeypoint.new(0, 1),
-                    NumberSequenceKeypoint.new(1, 0)
-                }
-                BrightGrad.Rotation = 90
-                BrightGrad.Parent = BrightnessGradient
+                CreateCorner(ColorCursor, 4)
                 
                 -- Selector de matiz
                 local HueSelector = Instance.new("Frame")
@@ -763,6 +879,13 @@ function Library:CreateWindow(config)
                 }
                 HueGradient.Rotation = 90
                 HueGradient.Parent = HueSelector
+                
+                local HueCursor = Instance.new("Frame")
+                HueCursor.Size = UDim2.new(1, 0, 0, 2)
+                HueCursor.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+                HueCursor.BorderColor3 = Color3.fromRGB(0, 0, 0)
+                HueCursor.BorderSizePixel = 1
+                HueCursor.Parent = HueSelector
                 
                 -- Botones de control
                 local ButtonFrame = Instance.new("Frame")
@@ -797,23 +920,22 @@ function Library:CreateWindow(config)
                 CreateCorner(CancelButton, 4)
                 
                 -- Variables para el color picker
-                local hue = 0
-                local saturation = 1
-                local brightness = 1
+                local hue, saturation, brightness = Color3.toHSV(currentColor)
                 local tempColor = currentColor
                 
                 -- Función para actualizar el color
                 local function UpdateColor()
-                    local hueColor = Color3.fromHSV(hue, 1, 1)
-                    ColorCanvas.BackgroundColor3 = hueColor
                     tempColor = Color3.fromHSV(hue, saturation, brightness)
                     ColorPreview.BackgroundColor3 = tempColor
+                    ColorCanvas.ImageColor3 = Color3.fromHSV(hue, 1, 1)
+                    ColorCursor.Position = UDim2.new(saturation, 0, 1 - brightness, 0)
+                    HueCursor.Position = UDim2.new(0, 0, hue, 0)
                 end
                 
                 -- Manejo del selector de matiz
                 local hueDragging = false
                 HueSelector.InputBegan:Connect(function(input)
-                    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+                    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
                         hueDragging = true
                         local relativeY = math.clamp((input.Position.Y - HueSelector.AbsolutePosition.Y) / HueSelector.AbsoluteSize.Y, 0, 1)
                         hue = relativeY
@@ -822,7 +944,7 @@ function Library:CreateWindow(config)
                 end)
                 
                 UserInputService.InputChanged:Connect(function(input)
-                    if hueDragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+                    if hueDragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
                         local relativeY = math.clamp((input.Position.Y - HueSelector.AbsolutePosition.Y) / HueSelector.AbsoluteSize.Y, 0, 1)
                         hue = relativeY
                         UpdateColor()
@@ -830,7 +952,7 @@ function Library:CreateWindow(config)
                 end)
                 
                 UserInputService.InputEnded:Connect(function(input)
-                    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+                    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
                         hueDragging = false
                     end
                 end)
@@ -838,7 +960,7 @@ function Library:CreateWindow(config)
                 -- Manejo del canvas de color
                 local canvasDragging = false
                 ColorCanvas.InputBegan:Connect(function(input)
-                    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+                    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
                         canvasDragging = true
                         local relativeX = math.clamp((input.Position.X - ColorCanvas.AbsolutePosition.X) / ColorCanvas.AbsoluteSize.X, 0, 1)
                         local relativeY = math.clamp((input.Position.Y - ColorCanvas.AbsolutePosition.Y) / ColorCanvas.AbsoluteSize.Y, 0, 1)
@@ -849,7 +971,7 @@ function Library:CreateWindow(config)
                 end)
                 
                 UserInputService.InputChanged:Connect(function(input)
-                    if canvasDragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+                    if canvasDragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
                         local relativeX = math.clamp((input.Position.X - ColorCanvas.AbsolutePosition.X) / ColorCanvas.AbsoluteSize.X, 0, 1)
                         local relativeY = math.clamp((input.Position.Y - ColorCanvas.AbsolutePosition.Y) / ColorCanvas.AbsoluteSize.Y, 0, 1)
                         saturation = relativeX
@@ -859,13 +981,14 @@ function Library:CreateWindow(config)
                 end)
                 
                 UserInputService.InputEnded:Connect(function(input)
-                    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+                    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
                         canvasDragging = false
                     end
                 end)
                 
                 -- Botones de control
                 AcceptButton.MouseButton1Click:Connect(function()
+                    RippleEffect(AcceptButton)
                     currentColor = tempColor
                     ColorPreview.BackgroundColor3 = currentColor
                     config.Callback(currentColor)
@@ -877,17 +1000,29 @@ function Library:CreateWindow(config)
                 end)
                 
                 CancelButton.MouseButton1Click:Connect(function()
+                    RippleEffect(CancelButton)
                     ColorPreview.BackgroundColor3 = currentColor
                     colorPicker:Destroy()
                     colorPicker = nil
                 end)
                 
                 -- Inicializar con color actual
-                local h, s, v = Color3.toHSV(currentColor)
-                hue = h
-                saturation = s
-                brightness = v
                 UpdateColor()
+                
+                return {
+                    Set = function(color)
+                        currentColor = color
+                        ColorPreview.BackgroundColor3 = color
+                        hue, saturation, brightness = Color3.toHSV(color)
+                        UpdateColor()
+                        if config.Flag then
+                            Library.Flags[config.Flag] = color
+                        end
+                    end,
+                    Get = function()
+                        return currentColor
+                    end
+                }
             end)
             
             return {
@@ -897,6 +1032,9 @@ function Library:CreateWindow(config)
                     if config.Flag then
                         Library.Flags[config.Flag] = color
                     end
+                end,
+                Get = function()
+                    return currentColor
                 end
             }
         end
@@ -911,7 +1049,7 @@ function Library:CreateWindow(config)
             config.Flag = config.Flag
             
             local DropdownFrame = Instance.new("Frame")
-            DropdownFrame.Name = "Dropdown"
+            DropdownFrame.Name = "Dropdown_" .. config.Name
             DropdownFrame.Size = UDim2.new(1, 0, 0, 40)
             DropdownFrame.BackgroundColor3 = Library.Theme.Secondary
             DropdownFrame.BorderSizePixel = 0
@@ -928,6 +1066,7 @@ function Library:CreateWindow(config)
             DropdownLabel.TextSize = 14
             DropdownLabel.Font = Enum.Font.Gotham
             DropdownLabel.TextXAlignment = Enum.TextXAlignment.Left
+            DropdownLabel.TextTruncate = Enum.TextTruncate.AtEnd
             DropdownLabel.Parent = DropdownFrame
             
             local DropdownButton = Instance.new("TextButton")
@@ -939,6 +1078,7 @@ function Library:CreateWindow(config)
             DropdownButton.TextColor3 = Library.Theme.Text
             DropdownButton.TextSize = 12
             DropdownButton.Font = Enum.Font.Gotham
+            DropdownButton.TextTruncate = Enum.TextTruncate.AtEnd
             DropdownButton.Parent = DropdownFrame
             
             CreateCorner(DropdownButton, 4)
@@ -952,6 +1092,7 @@ function Library:CreateWindow(config)
             DropdownList.BorderSizePixel = 0
             DropdownList.Visible = false
             DropdownList.ZIndex = 1000
+            DropdownList.ClipsDescendants = true
             DropdownList.Parent = DropdownFrame
             
             CreateCorner(DropdownList, 4)
@@ -961,6 +1102,11 @@ function Library:CreateWindow(config)
             ListLayout.SortOrder = Enum.SortOrder.LayoutOrder
             ListLayout.Parent = DropdownList
             
+            local ListPadding = Instance.new("UIPadding")
+            ListPadding.PaddingTop = UDim.new(0, 2)
+            ListPadding.PaddingBottom = UDim.new(0, 2)
+            ListPadding.Parent = DropdownList
+            
             local currentValue = config.Default
             local isOpen = false
             
@@ -969,51 +1115,76 @@ function Library:CreateWindow(config)
             end
             
             -- Crear opciones
-            for i, option in ipairs(config.Options) do
-                local OptionButton = Instance.new("TextButton")
-                OptionButton.Size = UDim2.new(1, 0, 0, 25)
-                OptionButton.BackgroundColor3 = Library.Theme.Background
-                OptionButton.BorderSizePixel = 0
-                OptionButton.Text = option
-                OptionButton.TextColor3 = Library.Theme.Text
-                OptionButton.TextSize = 12
-                OptionButton.Font = Enum.Font.Gotham
-                OptionButton.Parent = DropdownList
-                
-                if i == 1 then
-                    CreateCorner(OptionButton, 4)
-                elseif i == #config.Options then
-                    CreateCorner(OptionButton, 4)
+            local function UpdateOptions()
+                for _, child in ipairs(DropdownList:GetChildren()) do
+                    if child:IsA("TextButton") then
+                        child:Destroy()
+                    end
                 end
                 
-                OptionButton.MouseButton1Click:Connect(function()
-                    currentValue = option
-                    DropdownButton.Text = option .. " ▼"
-                    DropdownList.Visible = false
-                    isOpen = false
-                    config.Callback(option)
-                    
-                    if config.Flag then
-                        Library.Flags[config.Flag] = option
-                    end
-                end)
-                
-                OptionButton.MouseEnter:Connect(function()
-                    OptionButton.BackgroundColor3 = Library.Theme.Accent
-                end)
-                
-                OptionButton.MouseLeave:Connect(function()
+                for i, option in ipairs(config.Options) do
+                    local OptionButton = Instance.new("TextButton")
+                    OptionButton.Size = UDim2.new(1, 0, 0, 25)
                     OptionButton.BackgroundColor3 = Library.Theme.Background
-                end)
+                    OptionButton.BorderSizePixel = 0
+                    OptionButton.Text = option
+                    OptionButton.TextColor3 = Library.Theme.Text
+                    OptionButton.TextSize = 12
+                    OptionButton.Font = Enum.Font.Gotham
+                    OptionButton.TextTruncate = Enum.TextTruncate.AtEnd
+                    OptionButton.Parent = DropdownList
+                    
+                    OptionButton.MouseButton1Click:Connect(function()
+                        RippleEffect(OptionButton)
+                        currentValue = option
+                        DropdownButton.Text = option .. " ▼"
+                        DropdownList.Visible = false
+                        isOpen = false
+                        config.Callback(option)
+                        
+                        if config.Flag then
+                            Library.Flags[config.Flag] = option
+                        end
+                    end)
+                    
+                    OptionButton.MouseEnter:Connect(function()
+                        CreateTween(OptionButton, {BackgroundColor3 = Library.Theme.Accent}, 0.2):Play()
+                    end)
+                    
+                    OptionButton.MouseLeave:Connect(function()
+                        CreateTween(OptionButton, {BackgroundColor3 = Library.Theme.Background}, 0.2):Play()
+                    end)
+                end
+                
+                DropdownList.Size = UDim2.new(0, 100, 0, math.min(#config.Options * 25 + 4, 100))
             end
             
-            DropdownList.Size = UDim2.new(0, 100, 0, #config.Options * 25)
+            UpdateOptions()
             
             DropdownButton.MouseButton1Click:Connect(function()
+                RippleEffect(DropdownButton)
                 isOpen = not isOpen
                 DropdownList.Visible = isOpen
                 DropdownButton.Text = currentValue .. (isOpen and " ▲" or " ▼")
             end)
+            
+            -- Cerrar dropdown al hacer clic fuera
+            local clickConnection
+            clickConnection = UserInputService.InputBegan:Connect(function(input)
+                if input.UserInputType == Enum.UserInputType.MouseButton1 and isOpen then
+                    local mousePos = Vector2.new(input.Position.X, input.Position.Y)
+                    local listPos = DropdownList.AbsolutePosition
+                    local listSize = DropdownList.AbsoluteSize
+                    if not (mousePos.X >= listPos.X and mousePos.X <= listPos.X + listSize.X and
+                            mousePos.Y >= listPos.Y and mousePos.Y <= listPos.Y + listSize.Y) then
+                        DropdownList.Visible = false
+                        isOpen = false
+                        DropdownButton.Text = currentValue .. " ▼"
+                    end
+                end
+            end)
+            
+            table.insert(Library.Connections, clickConnection)
             
             return {
                 Set = function(value)
@@ -1022,6 +1193,20 @@ function Library:CreateWindow(config)
                         DropdownButton.Text = value .. " ▼"
                         if config.Flag then
                             Library.Flags[config.Flag] = value
+                        end
+                    end
+                end,
+                Get = function()
+                    return currentValue
+                end,
+                UpdateOptions = function(newOptions)
+                    config.Options = newOptions
+                    UpdateOptions()
+                    if not table.find(config.Options, currentValue) then
+                        currentValue = config.Options[1] or ""
+                        DropdownButton.Text = currentValue .. " ▼"
+                        if config.Flag then
+                            Library.Flags[config.Flag] = currentValue
                         end
                     end
                 end
@@ -1038,7 +1223,7 @@ function Library:CreateWindow(config)
             config.Flag = config.Flag
             
             local TextboxFrame = Instance.new("Frame")
-            TextboxFrame.Name = "Textbox"
+            TextboxFrame.Name = "Textbox_" .. config.Name
             TextboxFrame.Size = UDim2.new(1, 0, 0, 60)
             TextboxFrame.BackgroundColor3 = Library.Theme.Secondary
             TextboxFrame.BorderSizePixel = 0
@@ -1055,6 +1240,7 @@ function Library:CreateWindow(config)
             TextboxLabel.TextSize = 14
             TextboxLabel.Font = Enum.Font.Gotham
             TextboxLabel.TextXAlignment = Enum.TextXAlignment.Left
+            TextboxLabel.TextTruncate = Enum.TextTruncate.AtEnd
             TextboxLabel.Parent = TextboxFrame
             
             local Textbox = Instance.new("TextBox")
@@ -1068,7 +1254,7 @@ function Library:CreateWindow(config)
             Textbox.PlaceholderColor3 = Library.Theme.TextDark
             Textbox.TextSize = 12
             Textbox.Font = Enum.Font.Gotham
-            Textbox.ClearButtonOnFocus = false
+            Textbox.ClearTextOnFocus = false
             Textbox.Parent = TextboxFrame
             
             CreateCorner(Textbox, 4)
@@ -1089,9 +1275,9 @@ function Library:CreateWindow(config)
             
             Textbox.Focused:Connect(function()
                 CreateTween(Textbox, {BackgroundColor3 = Color3.fromRGB(
-                    math.max(0, Library.Theme.Background.R * 255 + 10),
-                    math.max(0, Library.Theme.Background.G * 255 + 10),
-                    math.max(0, Library.Theme.Background.B * 255 + 10)
+                    math.min(255, Library.Theme.Background.R * 255 + 20),
+                    math.min(255, Library.Theme.Background.G * 255 + 20),
+                    math.min(255, Library.Theme.Background.B * 255 + 20)
                 )}, 0.2):Play()
             end)
             
@@ -1101,10 +1287,13 @@ function Library:CreateWindow(config)
             
             return {
                 Set = function(text)
-                    Textbox.Text = text
+                    Textbox.Text = tostring(text)
                     if config.Flag then
-                        Library.Flags[config.Flag] = text
+                        Library.Flags[config.Flag] = Textbox.Text
                     end
+                end,
+                Get = function()
+                    return Textbox.Text
                 end
             }
         end
@@ -1112,7 +1301,7 @@ function Library:CreateWindow(config)
         -- Label
         function Tab:CreateLabel(text)
             local LabelFrame = Instance.new("Frame")
-            LabelFrame.Name = "Label"
+            LabelFrame.Name = "Label_" .. tostring(text):sub(1, 10)
             LabelFrame.Size = UDim2.new(1, 0, 0, 30)
             LabelFrame.BackgroundTransparency = 1
             LabelFrame.Parent = TabContent
@@ -1127,11 +1316,15 @@ function Library:CreateWindow(config)
             Label.Font = Enum.Font.Gotham
             Label.TextXAlignment = Enum.TextXAlignment.Left
             Label.TextWrapped = true
+            Label.TextTruncate = Enum.TextTruncate.AtEnd
             Label.Parent = LabelFrame
             
             return {
                 Set = function(newText)
-                    Label.Text = newText
+                    Label.Text = tostring(newText)
+                end,
+                Get = function()
+                    return Label.Text
                 end
             }
         end
@@ -1170,16 +1363,23 @@ function Library:SetFlag(flag, value)
     Library.Flags[flag] = value
 end
 
+-- Función para actualizar el tema
+function Library:UpdateTheme(newTheme)
+    for key, color in pairs(newTheme) do
+        Library.Theme[key] = color
+    end
+end
+
 -- Función para crear notificaciones
 function Library:CreateNotification(config)
     config = config or {}
     config.Title = config.Title or "Notification"
     config.Text = config.Text or "This is a notification"
     config.Duration = config.Duration or 3
-    config.Type = config.Type or "Info" -- Info, Success, Warning, Error
+    config.Type = config.Type or "Info"
     
     local NotificationGui = Instance.new("ScreenGui")
-    NotificationGui.Name = "Notification"
+    NotificationGui.Name = "Notification_" .. tostring(math.random(1000, 9999))
     NotificationGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
     NotificationGui.Parent = CoreGui
     
@@ -1193,7 +1393,6 @@ function Library:CreateNotification(config)
     CreateCorner(NotificationFrame, 8)
     CreateStroke(NotificationFrame, Library.Theme.Secondary, 2)
     
-    -- Color según el tipo
     local typeColors = {
         Info = Library.Theme.Accent,
         Success = Library.Theme.Success,
@@ -1218,6 +1417,7 @@ function Library:CreateNotification(config)
     TitleLabel.TextSize = 14
     TitleLabel.Font = Enum.Font.GothamBold
     TitleLabel.TextXAlignment = Enum.TextXAlignment.Left
+    TitleLabel.TextTruncate = Enum.TextTruncate.AtEnd
     TitleLabel.Parent = NotificationFrame
     
     local TextLabel = Instance.new("TextLabel")
@@ -1230,6 +1430,7 @@ function Library:CreateNotification(config)
     TextLabel.Font = Enum.Font.Gotham
     TextLabel.TextXAlignment = Enum.TextXAlignment.Left
     TextLabel.TextWrapped = true
+    TextLabel.TextTruncate = Enum.TextTruncate.AtEnd
     TextLabel.Parent = NotificationFrame
     
     local CloseButton = Instance.new("TextButton")
@@ -1248,16 +1449,16 @@ function Library:CreateNotification(config)
     
     -- Auto-close
     local closeConnection
-    closeConnection = task.wait(config.Duration, function()
+    closeConnection = task.spawn(function()
+        task.wait(config.Duration)
         CreateTween(NotificationFrame, {Position = UDim2.new(1, 0, 1, -100)}, 0.3):Play()
         task.wait(0.3)
         NotificationGui:Destroy()
     end)
     
     CloseButton.MouseButton1Click:Connect(function()
-        if closeConnection then
-            task.cancel(closeConnection)
-        end
+        RippleEffect(CloseButton)
+        task.cancel(closeConnection)
         CreateTween(NotificationFrame, {Position = UDim2.new(1, 0, 1, -100)}, 0.3):Play()
         task.wait(0.3)
         NotificationGui:Destroy()
@@ -1269,9 +1470,20 @@ function Library:Destroy()
     for _, connection in pairs(Library.Connections) do
         connection:Disconnect()
     end
+    Library.Connections = {}
+    Library.Flags = {}
     
-    if CoreGui:FindFirstChild("UILibrary") then
-        CoreGui.UILibrary:Destroy()
+    for _, gui in ipairs(CoreGui:GetChildren()) do
+        if gui.Name:match("^UILibrary_") or gui.Name:match("^Notification_") then
+            gui:Destroy()
+        end
+    end
+end
+
+-- Función para alternar visibilidad
+function Library:ToggleVisibility(window)
+    if window and window.ScreenGui then
+        window.ScreenGui.Enabled = not window.ScreenGui.Enabled
     end
 end
 
