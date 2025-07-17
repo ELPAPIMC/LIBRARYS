@@ -1,1291 +1,1185 @@
---[[
-    PibblestoreLib v1.0
-    Una biblioteca UI completa para Roblox
-    Desarrollado por Pibblestore
-]]
+-- PibblestoreLib v1.0.0
+-- A comprehensive UI library for Roblox
+-- Created for easy integration and sharing
 
 local PibblestoreLib = {}
 PibblestoreLib.__index = PibblestoreLib
 
+-- Services
+local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
-local Players = game:GetService("Players")
-local Player = Players.LocalPlayer
-local Mouse = Player:GetMouse()
+local RunService = game:GetService("RunService")
+local CoreGui = game:GetService("CoreGui")
 
--- Configuraciones de la biblioteca
-local Config = {
-    Themes = {
-        Dark = {
-            Background = Color3.fromRGB(30, 30, 30),
-            Container = Color3.fromRGB(40, 40, 40),
-            TextColor = Color3.fromRGB(255, 255, 255),
-            AccentColor = Color3.fromRGB(0, 120, 215),
-            ButtonColor = Color3.fromRGB(60, 60, 60),
-            ToggleOn = Color3.fromRGB(0, 175, 255),
-            ToggleOff = Color3.fromRGB(100, 100, 100)
-        },
-        Light = {
-            Background = Color3.fromRGB(240, 240, 240),
-            Container = Color3.fromRGB(255, 255, 255),
-            TextColor = Color3.fromRGB(0, 0, 0),
-            AccentColor = Color3.fromRGB(0, 120, 215),
-            ButtonColor = Color3.fromRGB(220, 220, 220),
-            ToggleOn = Color3.fromRGB(0, 120, 215),
-            ToggleOff = Color3.fromRGB(180, 180, 180)
-        },
-        Aquamarine = {
-            Background = Color3.fromRGB(18, 38, 32),
-            Container = Color3.fromRGB(24, 48, 41),
-            TextColor = Color3.fromRGB(210, 255, 252),
-            AccentColor = Color3.fromRGB(64, 224, 208),
-            ButtonColor = Color3.fromRGB(30, 60, 55),
-            ToggleOn = Color3.fromRGB(64, 224, 208),
-            ToggleOff = Color3.fromRGB(70, 90, 85)
-        }
+-- Variables
+local player = Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
+
+-- Theme Configuration
+local themes = {
+    light = {
+        primary = Color3.fromRGB(255, 255, 255),
+        secondary = Color3.fromRGB(240, 240, 240),
+        accent = Color3.fromRGB(0, 120, 215),
+        text = Color3.fromRGB(0, 0, 0),
+        textSecondary = Color3.fromRGB(100, 100, 100),
+        border = Color3.fromRGB(200, 200, 200),
+        hover = Color3.fromRGB(230, 230, 230),
+        success = Color3.fromRGB(40, 167, 69),
+        warning = Color3.fromRGB(255, 193, 7),
+        error = Color3.fromRGB(220, 53, 69)
     },
-    Animation = {
-        Duration = 0.3,
-        Style = Enum.EasingStyle.Quint,
-        Direction = Enum.EasingDirection.Out
+    dark = {
+        primary = Color3.fromRGB(45, 45, 45),
+        secondary = Color3.fromRGB(35, 35, 35),
+        accent = Color3.fromRGB(0, 120, 215),
+        text = Color3.fromRGB(255, 255, 255),
+        textSecondary = Color3.fromRGB(180, 180, 180),
+        border = Color3.fromRGB(70, 70, 70),
+        hover = Color3.fromRGB(55, 55, 55),
+        success = Color3.fromRGB(40, 167, 69),
+        warning = Color3.fromRGB(255, 193, 7),
+        error = Color3.fromRGB(220, 53, 69)
+    },
+    aquamarine = {
+        primary = Color3.fromRGB(127, 255, 212),
+        secondary = Color3.fromRGB(102, 205, 170),
+        accent = Color3.fromRGB(0, 139, 139),
+        text = Color3.fromRGB(0, 0, 0),
+        textSecondary = Color3.fromRGB(40, 40, 40),
+        border = Color3.fromRGB(95, 158, 160),
+        hover = Color3.fromRGB(144, 238, 144),
+        success = Color3.fromRGB(46, 125, 50),
+        warning = Color3.fromRGB(255, 152, 0),
+        error = Color3.fromRGB(183, 28, 28)
     }
 }
 
--- Función auxiliar para crear tweens
-local function CreateTween(object, properties, duration, style, direction)
-    local tween = TweenService:Create(
-        object,
-        TweenInfo.new(
-            duration or Config.Animation.Duration,
-            style or Config.Animation.Style,
-            direction or Config.Animation.Direction
-        ),
-        properties
+-- Animation Configuration
+local animationConfig = {
+    duration = 0.3,
+    easingStyle = Enum.EasingStyle.Quad,
+    easingDirection = Enum.EasingDirection.Out
+}
+
+-- Utility Functions
+local function createTween(object, properties, duration, easingStyle, easingDirection)
+    local tweenInfo = TweenInfo.new(
+        duration or animationConfig.duration,
+        easingStyle or animationConfig.easingStyle,
+        easingDirection or animationConfig.easingDirection
     )
-    return tween
+    return TweenService:Create(object, tweenInfo, properties)
 end
 
--- Función para crear objetos UI
-local function CreateObject(class, properties)
-    local obj = Instance.new(class)
-    for property, value in pairs(properties) do
-        obj[property] = value
-    end
-    return obj
-end
-
--- Función para redondear las esquinas
-local function ApplyCorners(object, radius)
-    local corner = Instance.new("UICorner", object)
-    corner.CornerRadius = UDim.new(0, radius or 4)
+local function createCorner(parent, radius)
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, radius or 8)
+    corner.Parent = parent
     return corner
 end
 
--- Función principal para crear la interfaz
-function PibblestoreLib.new(title, themeName)
-    local theme = Config.Themes[themeName or "Dark"]
-    if not theme then theme = Config.Themes.Dark end
+local function createStroke(parent, color, thickness)
+    local stroke = Instance.new("UIStroke")
+    stroke.Color = color
+    stroke.Thickness = thickness or 1
+    stroke.Parent = parent
+    return stroke
+end
+
+local function createPadding(parent, padding)
+    local uiPadding = Instance.new("UIPadding")
+    uiPadding.PaddingTop = UDim.new(0, padding)
+    uiPadding.PaddingBottom = UDim.new(0, padding)
+    uiPadding.PaddingLeft = UDim.new(0, padding)
+    uiPadding.PaddingRight = UDim.new(0, padding)
+    uiPadding.Parent = parent
+    return uiPadding
+end
+
+-- Main Library Constructor
+function PibblestoreLib.new(config)
+    local self = setmetatable({}, PibblestoreLib)
     
-    -- Creamos el ScreenGui
-    local ScreenGui = CreateObject("ScreenGui", {
-        Name = "PibblestoreLib",
-        Parent = game.CoreGui,
-        ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
-        ResetOnSpawn = false
-    })
+    -- Configuration
+    self.config = config or {}
+    self.theme = themes[self.config.theme or "dark"]
+    self.minimized = false
+    self.notifications = {}
     
-    -- Contenedor principal
-    local Main = CreateObject("Frame", {
-        Name = "Main",
-        Parent = ScreenGui,
-        BackgroundColor3 = theme.Background,
-        Position = UDim2.new(0.5, 0, 0.5, 0),
-        Size = UDim2.new(0, 450, 0, 350),
-        AnchorPoint = Vector2.new(0.5, 0.5)
-    })
-    ApplyCorners(Main, 6)
+    -- Create main GUI
+    self.screenGui = Instance.new("ScreenGui")
+    self.screenGui.Name = "PibblestoreLib"
+    self.screenGui.Parent = playerGui
+    self.screenGui.ResetOnSpawn = false
     
-    -- Sombra
-    local Shadow = CreateObject("ImageLabel", {
-        Name = "Shadow",
-        Parent = Main,
-        BackgroundTransparency = 1,
-        Position = UDim2.new(0.5, 0, 0.5, 0),
-        Size = UDim2.new(1, 30, 1, 30),
-        AnchorPoint = Vector2.new(0.5, 0.5),
-        Image = "rbxassetid://5554236805",
-        ImageColor3 = Color3.fromRGB(0, 0, 0),
-        ImageTransparency = 0.6,
-        ScaleType = Enum.ScaleType.Slice,
-        SliceCenter = Rect.new(23, 23, 277, 277)
-    })
+    -- Create main frame
+    self.mainFrame = Instance.new("Frame")
+    self.mainFrame.Name = "MainFrame"
+    self.mainFrame.Size = UDim2.new(0, 500, 0, 400)
+    self.mainFrame.Position = UDim2.new(0.5, -250, 0.5, -200)
+    self.mainFrame.BackgroundColor3 = self.theme.primary
+    self.mainFrame.BorderSizePixel = 0
+    self.mainFrame.Parent = self.screenGui
     
-    -- Barra superior
-    local TopBar = CreateObject("Frame", {
-        Name = "TopBar",
-        Parent = Main,
-        BackgroundColor3 = theme.Container,
-        Size = UDim2.new(1, 0, 0, 30)
-    })
-    ApplyCorners(TopBar, 6)
+    createCorner(self.mainFrame, 12)
+    createStroke(self.mainFrame, self.theme.border, 2)
     
-    local TopBarBottomCover = CreateObject("Frame", {
-        Name = "TopBarBottomCover",
-        Parent = TopBar,
-        BackgroundColor3 = theme.Container,
-        Position = UDim2.new(0, 0, 1, -6),
-        Size = UDim2.new(1, 0, 0, 6)
-    })
+    -- Make draggable
+    self:makeDraggable(self.mainFrame)
     
-    -- Título
-    local TitleLabel = CreateObject("TextLabel", {
-        Name = "Title",
-        Parent = TopBar,
-        BackgroundTransparency = 1,
-        Position = UDim2.new(0, 10, 0, 0),
-        Size = UDim2.new(1, -20, 1, 0),
-        Font = Enum.Font.GothamSemibold,
-        Text = title or "PibblestoreLib",
-        TextColor3 = theme.TextColor,
-        TextSize = 14,
-        TextXAlignment = Enum.TextXAlignment.Left
-    })
+    -- Create title bar
+    self.titleBar = Instance.new("Frame")
+    self.titleBar.Name = "TitleBar"
+    self.titleBar.Size = UDim2.new(1, 0, 0, 40)
+    self.titleBar.Position = UDim2.new(0, 0, 0, 0)
+    self.titleBar.BackgroundColor3 = self.theme.secondary
+    self.titleBar.BorderSizePixel = 0
+    self.titleBar.Parent = self.mainFrame
     
-    -- Botón para cerrar
-    local CloseButton = CreateObject("TextButton", {
-        Name = "CloseButton",
-        Parent = TopBar,
-        BackgroundTransparency = 1,
-        Position = UDim2.new(1, -25, 0, 0),
-        Size = UDim2.new(0, 25, 1, 0),
-        Font = Enum.Font.GothamBold,
-        Text = "X",
-        TextColor3 = theme.TextColor,
-        TextSize = 14
-    })
+    createCorner(self.titleBar, 12)
     
-    -- Soporte para arrastrar la ventana
-    local isDragging = false
+    -- Title text
+    self.titleText = Instance.new("TextLabel")
+    self.titleText.Name = "TitleText"
+    self.titleText.Size = UDim2.new(1, -80, 1, 0)
+    self.titleText.Position = UDim2.new(0, 10, 0, 0)
+    self.titleText.BackgroundTransparency = 1
+    self.titleText.Text = self.config.title or "PibblestoreLib"
+    self.titleText.TextColor3 = self.theme.text
+    self.titleText.TextScaled = true
+    self.titleText.TextXAlignment = Enum.TextXAlignment.Left
+    self.titleText.Font = Enum.Font.GothamBold
+    self.titleText.Parent = self.titleBar
+    
+    -- Create minimize button
+    self:createMinimizeButton()
+    
+    -- Create content frame
+    self.contentFrame = Instance.new("ScrollingFrame")
+    self.contentFrame.Name = "ContentFrame"
+    self.contentFrame.Size = UDim2.new(1, -20, 1, -60)
+    self.contentFrame.Position = UDim2.new(0, 10, 0, 50)
+    self.contentFrame.BackgroundTransparency = 1
+    self.contentFrame.BorderSizePixel = 0
+    self.contentFrame.ScrollBarThickness = 6
+    self.contentFrame.ScrollBarImageColor3 = self.theme.accent
+    self.contentFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
+    self.contentFrame.Parent = self.mainFrame
+    
+    -- Layout for content
+    self.contentLayout = Instance.new("UIListLayout")
+    self.contentLayout.SortOrder = Enum.SortOrder.LayoutOrder
+    self.contentLayout.Padding = UDim.new(0, 10)
+    self.contentLayout.Parent = self.contentFrame
+    
+    -- Auto-resize content
+    self.contentLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+        self.contentFrame.CanvasSize = UDim2.new(0, 0, 0, self.contentLayout.AbsoluteContentSize.Y + 20)
+    end)
+    
+    -- Setup minimize functionality
+    self:setupMinimizeControls()
+    
+    return self
+end
+
+-- Make frame draggable
+function PibblestoreLib:makeDraggable(frame)
+    local dragging = false
     local dragStart = nil
     local startPos = nil
     
-    TopBar.InputBegan:Connect(function(input)
+    frame.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 then
-            isDragging = true
+            dragging = true
             dragStart = input.Position
-            startPos = Main.Position
+            startPos = frame.Position
         end
     end)
     
-    TopBar.InputEnded:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then
-            isDragging = false
-        end
-    end)
-    
-    UserInputService.InputChanged:Connect(function(input)
-        if isDragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+    frame.InputChanged:Connect(function(input)
+        if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
             local delta = input.Position - dragStart
-            Main.Position = UDim2.new(
-                startPos.X.Scale, 
-                startPos.X.Offset + delta.X,
-                startPos.Y.Scale, 
-                startPos.Y.Offset + delta.Y
-            )
+            frame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
         end
     end)
     
-    -- Contenedor para pestañas
-    local TabContainer = CreateObject("Frame", {
-        Name = "TabContainer",
-        Parent = Main,
-        BackgroundColor3 = theme.Container,
-        Position = UDim2.new(0, 5, 0, 35),
-        Size = UDim2.new(0, 100, 1, -40)
-    })
-    ApplyCorners(TabContainer, 6)
-    
-    local TabList = CreateObject("ScrollingFrame", {
-        Name = "TabList",
-        Parent = TabContainer,
-        BackgroundTransparency = 1,
-        Position = UDim2.new(0, 0, 0, 5),
-        Size = UDim2.new(1, 0, 1, -10),
-        CanvasSize = UDim2.new(0, 0, 0, 0),
-        ScrollBarThickness = 0,
-        AutomaticCanvasSize = Enum.AutomaticSize.Y
-    })
-    
-    local TabListLayout = CreateObject("UIListLayout", {
-        Parent = TabList,
-        SortOrder = Enum.SortOrder.LayoutOrder,
-        Padding = UDim.new(0, 5)
-    })
-    
-    local TabListPadding = CreateObject("UIPadding", {
-        Parent = TabList,
-        PaddingLeft = UDim.new(0, 5),
-        PaddingRight = UDim.new(0, 5)
-    })
-    
-    -- Contenedor para el contenido
-    local ContentContainer = CreateObject("Frame", {
-        Name = "ContentContainer",
-        Parent = Main,
-        BackgroundColor3 = theme.Container,
-        Position = UDim2.new(0, 110, 0, 35),
-        Size = UDim2.new(1, -115, 1, -40)
-    })
-    ApplyCorners(ContentContainer, 6)
-    
-    -- Manejador para cerrar la UI
-    CloseButton.MouseButton1Click:Connect(function()
-        local closeTween = CreateTween(Main, {Size = UDim2.new(0, 0, 0, 0), Transparency = 1})
-        closeTween:Play()
-        closeTween.Completed:Connect(function()
-            ScreenGui:Destroy()
-        end)
+    frame.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = false
+        end
     end)
-    
-    -- Crear efecto de aparición
-    Main.Size = UDim2.new(0, 0, 0, 0)
-    Main.BackgroundTransparency = 1
-    Shadow.ImageTransparency = 1
-    
-    local openTween = CreateTween(Main, {Size = UDim2.new(0, 450, 0, 350), BackgroundTransparency = 0})
-    local shadowTween = CreateTween(Shadow, {ImageTransparency = 0.6})
-    
-    openTween:Play()
-    shadowTween:Play()
-    
-    -- Objeto que manejaremos
-    local Window = {}
-    Window.ScreenGui = ScreenGui
-    Window.Main = Main
-    Window.Theme = theme
-    Window.Tabs = {}
-    Window.ActiveTab = nil
-    
-    -- Método para cambiar el tema
-    function Window:SetTheme(themeName)
-        local newTheme = Config.Themes[themeName]
-        if not newTheme then return end
-        
-        self.Theme = newTheme
-        
-        -- Actualizar colores principales
-        local mainTween = CreateTween(Main, {BackgroundColor3 = newTheme.Background})
-        local topBarTween = CreateTween(TopBar, {BackgroundColor3 = newTheme.Container})
-        local topBarCoverTween = CreateTween(TopBarBottomCover, {BackgroundColor3 = newTheme.Container})
-        local tabContainerTween = CreateTween(TabContainer, {BackgroundColor3 = newTheme.Container})
-        local contentContainerTween = CreateTween(ContentContainer, {BackgroundColor3 = newTheme.Container})
-        
-        mainTween:Play()
-        topBarTween:Play()
-        topBarCoverTween:Play()
-        tabContainerTween:Play()
-        contentContainerTween:Play()
-        
-        -- Actualizar textos
-        TitleLabel.TextColor3 = newTheme.TextColor
-        CloseButton.TextColor3 = newTheme.TextColor
-        
-        -- Actualizar pestañas y contenidos
-        for _, tab in pairs(self.Tabs) do
-            tab:UpdateTheme(newTheme)
-        end
-    end
-    
-    -- Método para crear una nueva pestaña
-    function Window:CreateTab(name, icon)
-        local tabButton = CreateObject("TextButton", {
-            Name = name,
-            Parent = TabList,
-            BackgroundColor3 = self.Theme.ButtonColor,
-            Size = UDim2.new(1, 0, 0, 30),
-            Font = Enum.Font.Gotham,
-            Text = name,
-            TextColor3 = self.Theme.TextColor,
-            TextSize = 12,
-            AutoButtonColor = false
-        })
-        ApplyCorners(tabButton, 4)
-        
-        if icon then
-            local iconImage = CreateObject("ImageLabel", {
-                Name = "Icon",
-                Parent = tabButton,
-                BackgroundTransparency = 1,
-                Position = UDim2.new(0, 5, 0.5, 0),
-                Size = UDim2.new(0, 16, 0, 16),
-                AnchorPoint = Vector2.new(0, 0.5),
-                Image = icon
-            })
-            
-            tabButton.Text = "    " .. name
-            tabButton.TextXAlignment = Enum.TextXAlignment.Left
-        end
-        
-        local tabContent = CreateObject("ScrollingFrame", {
-            Name = name .. "Content",
-            Parent = ContentContainer,
-            BackgroundTransparency = 1,
-            BorderSizePixel = 0,
-            Size = UDim2.new(1, 0, 1, 0),
-            CanvasSize = UDim2.new(0, 0, 0, 0),
-            ScrollBarThickness = 4,
-            Visible = false,
-            AutomaticCanvasSize = Enum.AutomaticSize.Y,
-            ScrollBarImageColor3 = self.Theme.AccentColor
-        })
-        
-        local contentLayout = CreateObject("UIListLayout", {
-            Parent = tabContent,
-            SortOrder = Enum.SortOrder.LayoutOrder,
-            Padding = UDim.new(0, 8)
-        })
-        
-        local contentPadding = CreateObject("UIPadding", {
-            Parent = tabContent,
-            PaddingLeft = UDim.new(0, 10),
-            PaddingRight = UDim.new(0, 10),
-            PaddingTop = UDim.new(0, 10),
-            PaddingBottom = UDim.new(0, 10)
-        })
-        
-        local Tab = {}
-        Tab.Button = tabButton
-        Tab.Content = tabContent
-        Tab.Elements = {}
-        
-        -- Actualizar el tema de los elementos
-        function Tab:UpdateTheme(newTheme)
-            tabButton.BackgroundColor3 = newTheme.ButtonColor
-            tabButton.TextColor3 = newTheme.TextColor
-            tabContent.ScrollBarImageColor3 = newTheme.AccentColor
-            
-            for _, element in pairs(self.Elements) do
-                if element.UpdateTheme then
-                    element:UpdateTheme(newTheme)
-                end
-            end
-        end
-        
-        -- Método para crear un Label
-        function Tab:AddLabel(text)
-            local label = CreateObject("TextLabel", {
-                Name = "Label",
-                Parent = tabContent,
-                BackgroundTransparency = 1,
-                Size = UDim2.new(1, 0, 0, 30),
-                Font = Enum.Font.Gotham,
-                Text = text,
-                TextColor3 = Window.Theme.TextColor,
-                TextSize = 14,
-                TextWrapped = true,
-                TextXAlignment = Enum.TextXAlignment.Left
-            })
-            
-            local labelObj = {
-                Instance = label,
-                Type = "Label"
-            }
-            
-            -- Método para actualizar el texto
-            function labelObj:SetText(newText)
-                label.Text = newText
-            end
-            
-            -- Método para actualizar el tema
-            function labelObj:UpdateTheme(newTheme)
-                label.TextColor3 = newTheme.TextColor
-            end
-            
-            table.insert(self.Elements, labelObj)
-            return labelObj
-        end
-        
-        -- Método para crear un botón
-        function Tab:AddButton(text, callback)
-            local button = CreateObject("TextButton", {
-                Name = "Button",
-                Parent = tabContent,
-                BackgroundColor3 = Window.Theme.ButtonColor,
-                Size = UDim2.new(1, 0, 0, 35),
-                Font = Enum.Font.Gotham,
-                Text = text,
-                TextColor3 = Window.Theme.TextColor,
-                TextSize = 14,
-                AutoButtonColor = false
-            })
-            ApplyCorners(button, 4)
-            
-            local buttonObj = {
-                Instance = button,
-                Type = "Button",
-                Callback = callback
-            }
-            
-            -- Efectos de hover
-            button.MouseEnter:Connect(function()
-                local hoverTween = CreateTween(button, {BackgroundColor3 = Window.Theme.AccentColor})
-                hoverTween:Play()
-            end)
-            
-            button.MouseLeave:Connect(function()
-                local leaveTween = CreateTween(button, {BackgroundColor3 = Window.Theme.ButtonColor})
-                leaveTween:Play()
-            end)
-            
-            button.MouseButton1Click:Connect(function()
-                if buttonObj.Callback then
-                    buttonObj.Callback()
-                end
-                
-                -- Efecto de clic
-                local clickScale = CreateTween(button, {Size = UDim2.new(0.97, 0, 0, 35)}, 0.1)
-                local returnScale = CreateTween(button, {Size = UDim2.new(1, 0, 0, 35)}, 0.1)
-                
-                clickScale:Play()
-                clickScale.Completed:Connect(function()
-                    returnScale:Play()
-                end)
-            end)
-            
-            -- Método para actualizar el texto
-            function buttonObj:SetText(newText)
-                button.Text = newText
-            end
-            
-            -- Método para actualizar el callback
-            function buttonObj:SetCallback(newCallback)
-                self.Callback = newCallback
-            end
-            
-            -- Método para actualizar el tema
-            function buttonObj:UpdateTheme(newTheme)
-                button.BackgroundColor3 = newTheme.ButtonColor
-                button.TextColor3 = newTheme.TextColor
-            end
-            
-            table.insert(self.Elements, buttonObj)
-            return buttonObj
-        end
-        
-        -- Método para crear un toggle
-        function Tab:AddToggle(text, default, callback)
-            local toggle = CreateObject("Frame", {
-                Name = "Toggle",
-                Parent = tabContent,
-                BackgroundTransparency = 1,
-                Size = UDim2.new(1, 0, 0, 35)
-            })
-            
-            local toggleLabel = CreateObject("TextLabel", {
-                Name = "Label",
-                Parent = toggle,
-                BackgroundTransparency = 1,
-                Position = UDim2.new(0, 0, 0, 0),
-                Size = UDim2.new(1, -50, 1, 0),
-                Font = Enum.Font.Gotham,
-                Text = text,
-                TextColor3 = Window.Theme.TextColor,
-                TextSize = 14,
-                TextXAlignment = Enum.TextXAlignment.Left
-            })
-            
-            local toggleButton = CreateObject("Frame", {
-                Name = "ToggleButton",
-                Parent = toggle,
-                BackgroundColor3 = default and Window.Theme.ToggleOn or Window.Theme.ToggleOff,
-                Position = UDim2.new(1, -40, 0.5, 0),
-                Size = UDim2.new(0, 40, 0, 20),
-                AnchorPoint = Vector2.new(0, 0.5)
-            })
-            ApplyCorners(toggleButton, 10)
-            
-            local toggleCircle = CreateObject("Frame", {
-                Name = "Circle",
-                Parent = toggleButton,
-                BackgroundColor3 = Color3.fromRGB(255, 255, 255),
-                Position = default and UDim2.new(1, -18, 0.5, 0) or UDim2.new(0, 2, 0.5, 0),
-                Size = UDim2.new(0, 16, 0, 16),
-                AnchorPoint = Vector2.new(0, 0.5)
-            })
-            ApplyCorners(toggleCircle, 8)
-            
-            local toggleHitbox = CreateObject("TextButton", {
-                Name = "Hitbox",
-                Parent = toggle,
-                BackgroundTransparency = 1,
-                Size = UDim2.new(1, 0, 1, 0),
-                Text = "",
-                ZIndex = 10
-            })
-            
-            local toggleObj = {
-                Instance = toggle,
-                Type = "Toggle",
-                Enabled = default or false,
-                Callback = callback
-            }
-            
-            -- Función para actualizar el estado visual
-            local function updateToggleVisual()
-                local targetPosition = toggleObj.Enabled and UDim2.new(1, -18, 0.5, 0) or UDim2.new(0, 2, 0.5, 0)
-                local targetColor = toggleObj.Enabled and Window.Theme.ToggleOn or Window.Theme.ToggleOff
-                
-                local positionTween = CreateTween(toggleCircle, {Position = targetPosition})
-                local colorTween = CreateTween(toggleButton, {BackgroundColor3 = targetColor})
-                
-                positionTween:Play()
-                colorTween:Play()
-            end
-            
-            toggleHitbox.MouseButton1Click:Connect(function()
-                toggleObj.Enabled = not toggleObj.Enabled
-                updateToggleVisual()
-                
-                if toggleObj.Callback then
-                    toggleObj.Callback(toggleObj.Enabled)
-                end
-            end)
-            
-            -- Método para obtener el valor
-            function toggleObj:GetValue()
-                return self.Enabled
-            end
-            
-            -- Método para establecer el valor
-            function toggleObj:SetValue(value)
-                self.Enabled = value
-                updateToggleVisual()
-                
-                if self.Callback then
-                    self.Callback(self.Enabled)
-                end
-            end
-            
-            -- Método para actualizar el tema
-            function toggleObj:UpdateTheme(newTheme)
-                toggleLabel.TextColor3 = newTheme.TextColor
-                toggleButton.BackgroundColor3 = self.Enabled and newTheme.ToggleOn or newTheme.ToggleOff
-            end
-            
-            table.insert(self.Elements, toggleObj)
-            return toggleObj
-        end
-        
-        -- Método para crear un Slider
-        function Tab:AddSlider(text, min, max, default, precision, callback)
-            min = min or 0
-            max = max or 100
-            default = default or min
-            precision = precision or 1
-            
-            -- Asegurarse de que el valor predeterminado esté dentro del rango
-            default = math.clamp(default, min, max)
-            
-            local slider = CreateObject("Frame", {
-                Name = "Slider",
-                Parent = tabContent,
-                BackgroundTransparency = 1,
-                Size = UDim2.new(1, 0, 0, 50)
-            })
-            
-            local sliderLabel = CreateObject("TextLabel", {
-                Name = "Label",
-                Parent = slider,
-                BackgroundTransparency = 1,
-                Position = UDim2.new(0, 0, 0, 0),
-                Size = UDim2.new(1, 0, 0, 20),
-                Font = Enum.Font.Gotham,
-                Text = text,
-                TextColor3 = Window.Theme.TextColor,
-                TextSize = 14,
-                TextXAlignment = Enum.TextXAlignment.Left
-            })
-            
-            local valueLabel = CreateObject("TextLabel", {
-                Name = "Value",
-                Parent = slider,
-                BackgroundTransparency = 1,
-                Position = UDim2.new(1, -40, 0, 0),
-                Size = UDim2.new(0, 40, 0, 20),
-                Font = Enum.Font.Gotham,
-                Text = tostring(default),
-                TextColor3 = Window.Theme.TextColor,
-                TextSize = 14,
-                TextXAlignment = Enum.TextXAlignment.Right
-            })
-            
-            local sliderBg = CreateObject("Frame", {
-                Name = "Background",
-                Parent = slider,
-                BackgroundColor3 = Window.Theme.ButtonColor,
-                Position = UDim2.new(0, 0, 0, 25),
-                Size = UDim2.new(1, 0, 0, 8)
-            })
-            ApplyCorners(sliderBg, 4)
-            
-            local sliderFill = CreateObject("Frame", {
-                Name = "Fill",
-                Parent = sliderBg,
-                BackgroundColor3 = Window.Theme.AccentColor,
-                Size = UDim2.new((default - min) / (max - min), 0, 1, 0)
-            })
-            ApplyCorners(sliderFill, 4)
-            
-            local sliderKnob = CreateObject("Frame", {
-                Name = "Knob",
-                Parent = sliderBg,
-                BackgroundColor3 = Color3.fromRGB(255, 255, 255),
-                Position = UDim2.new((default - min) / (max - min), 0, 0.5, 0),
-                Size = UDim2.new(0, 16, 0, 16),
-                AnchorPoint = Vector2.new(0.5, 0.5),
-                ZIndex = 5
-            })
-            ApplyCorners(sliderKnob, 8)
-            
-            local sliderHitbox = CreateObject("TextButton", {
-                Name = "Hitbox",
-                Parent = sliderBg,
-                BackgroundTransparency = 1,
-                Size = UDim2.new(1, 0, 1, 0),
-                Text = "",
-                ZIndex = 10
-            })
-            
-            local sliderObj = {
-                Instance = slider,
-                Type = "Slider",
-                Value = default,
-                Min = min,
-                Max = max,
-                Precision = precision,
-                Callback = callback
-            }
-            
-            -- Función para formatear el valor según la precisión
-            local function formatValue(value)
-                if precision == 0 then
-                    return math.floor(value)
-                else
-                    local fmt = "%." .. precision .. "f"
-                    return string.format(fmt, value)
-                end
-            end
-            
-            -- Función para actualizar el slider visualmente
-            local function updateSlider(value)
-                value = math.clamp(value, min, max)
-                local percentage = (value - min) / (max - min)
-                
-                -- Redondear según la precisión
-                if precision == 0 then
-                    value = math.floor(value)
-                else
-                    local multiplier = 10 ^ precision
-                    value = math.floor(value * multiplier + 0.5) / multiplier
-                end
-                
-                sliderObj.Value = value
-                valueLabel.Text = formatValue(value)
-                
-                -- Animación suave
-                local fillTween = CreateTween(sliderFill, {Size = UDim2.new(percentage, 0, 1, 0)}, 0.1)
-                local knobTween = CreateTween(sliderKnob, {Position = UDim2.new(percentage, 0, 0.5, 0)}, 0.1)
-                
-                fillTween:Play()
-                knobTween:Play()
-                
-                if sliderObj.Callback then
-                    sliderObj.Callback(value)
-                end
-            end
-            
-            -- Manejo de eventos de arrastre
-            local isDragging = false
-            
-            sliderHitbox.MouseButton1Down:Connect(function()
-                isDragging = true
-            end)
-            
-            UserInputService.InputEnded:Connect(function(input)
-                if input.UserInputType == Enum.UserInputType.MouseButton1 then
-                    isDragging = false
-                end
-            end)
-            
-            sliderHitbox.MouseButton1Click:Connect(function()
-                local relativeX = Mouse.X - sliderBg.AbsolutePosition.X
-                local percentage = math.clamp(relativeX / sliderBg.AbsoluteSize.X, 0, 1)
-                local value = min + (max - min) * percentage
-                updateSlider(value)
-            end)
-            
-            UserInputService.InputChanged:Connect(function(input)
-                if isDragging and input.UserInputType == Enum.UserInputType.MouseMovement then
-                    local relativeX = Mouse.X - sliderBg.AbsolutePosition.X
-                    local percentage = math.clamp(relativeX / sliderBg.AbsoluteSize.X, 0, 1)
-                    local value = min + (max - min) * percentage
-                    updateSlider(value)
-                end
-            end)
-            
-            -- Método para obtener el valor
-            function sliderObj:GetValue()
-                return self.Value
-            end
-            
-            -- Método para establecer el valor
-            function sliderObj:SetValue(value)
-                updateSlider(value)
-            end
-            
-            -- Método para actualizar el tema
-            function sliderObj:UpdateTheme(newTheme)
-                sliderLabel.TextColor3 = newTheme.TextColor
-                valueLabel.TextColor3 = newTheme.TextColor
-                sliderBg.BackgroundColor3 = newTheme.ButtonColor
-                sliderFill.BackgroundColor3 = newTheme.AccentColor
-            end
-            
-            -- Actualizar el slider inicialmente
-            updateSlider(default)
-            
-            table.insert(self.Elements, sliderObj)
-            return sliderObj
-        end
-        
-        -- Método para crear un Dropdown
-        function Tab:AddDropdown(text, options, default, callback)
-            options = options or {}
-            default = default or options[1]
-            
-            local dropdown = CreateObject("Frame", {
-                Name = "Dropdown",
-                Parent = tabContent,
-                BackgroundTransparency = 1,
-                Size = UDim2.new(1, 0, 0, 35),
-                ClipsDescendants = true
-            })
-            
-            local dropdownLabel = CreateObject("TextLabel", {
-                Name = "Label",
-                Parent = dropdown,
-                BackgroundTransparency = 1,
-                Position = UDim2.new(0, 0, 0, 0),
-                Size = UDim2.new(1, 0, 0, 20),
-                Font = Enum.Font.Gotham,
-                Text = text,
-                TextColor3 = Window.Theme.TextColor,
-                TextSize = 14,
-                TextXAlignment = Enum.TextXAlignment.Left
-            })
-            
-            local dropdownButton = CreateObject("TextButton", {
-                Name = "Button",
-                Parent = dropdown,
-                BackgroundColor3 = Window.Theme.ButtonColor,
-                Position = UDim2.new(0, 0, 0, 25),
-                Size = UDim2.new(1, 0, 0, 30),
-                Font = Enum.Font.Gotham,
-                Text = default or "Select...",
-                TextColor3 = Window.Theme.TextColor,
-                TextSize = 14,
-                TextXAlignment = Enum.TextXAlignment.Left,
-                TextTruncate = Enum.TextTruncate.AtEnd,
-                AutoButtonColor = false
-            })
-            ApplyCorners(dropdownButton, 4)
-            
-            local dropdownPadding = CreateObject("UIPadding", {
-                Parent = dropdownButton,
-                PaddingLeft = UDim.new(0, 10)
-            })
-            
-            local dropdownIcon = CreateObject("ImageLabel", {
-                Name = "Icon",
-                Parent = dropdownButton,
-                BackgroundTransparency = 1,
-                Position = UDim2.new(1, -25, 0.5, 0),
-                Size = UDim2.new(0, 15, 0, 15),
-                AnchorPoint = Vector2.new(0.5, 0.5),
-                Image = "rbxassetid://7072706663", -- Flecha hacia abajo
-                ImageColor3 = Window.Theme.TextColor
-            })
-            
-            local optionsFrame = CreateObject("Frame", {
-                Name = "Options",
-                Parent = dropdown,
-                BackgroundColor3 = Window.Theme.ButtonColor,
-                Position = UDim2.new(0, 0, 0, 60),
-                Size = UDim2.new(1, 0, 0, 0),
-                Visible = false,
-                ZIndex = 10,
-                ClipsDescendants = true
-            })
-            ApplyCorners(optionsFrame, 4)
-            
-            local optionsList = CreateObject("ScrollingFrame", {
-                Name = "List",
-                Parent = optionsFrame,
-                BackgroundTransparency = 1,
-                Size = UDim2.new(1, 0, 1, 0),
-                CanvasSize = UDim2.new(0, 0, 0, 0),
-                ScrollBarThickness = 4,
-                ScrollBarImageColor3 = Window.Theme.AccentColor,
-                ZIndex = 10,
-                AutomaticCanvasSize = Enum.AutomaticSize.Y
-            })
-            
-            local optionsLayout = CreateObject("UIListLayout", {
-                Parent = optionsList,
-                SortOrder = Enum.SortOrder.LayoutOrder,
-                Padding = UDim.new(0, 2)
-            })
-            
-            local optionsPadding = CreateObject("UIPadding", {
-                Parent = optionsList,
-                PaddingLeft = UDim.new(0, 5),
-                PaddingRight = UDim.new(0, 5),
-                PaddingTop = UDim.new(0, 5),
-                PaddingBottom = UDim.new(0, 5)
-            })
-            
-            local dropdownObj = {
-                Instance = dropdown,
-                Type = "Dropdown",
-                Value = default,
-                Options = options,
-                Callback = callback,
-                IsOpen = false
-            }
-            
-            -- Función para agregar opciones
-            local function createOptions()
-                -- Limpiar opciones existentes
-                for _, child in pairs(optionsList:GetChildren()) do
-                    if child:IsA("TextButton") then
-                        child:Destroy()
-                    end
-                end
-                
-                -- Agregar nuevas opciones
-                for i, option in ipairs(options) do
-                    local optionButton = CreateObject("TextButton", {
-                        Name = "Option_" .. i,
-                        Parent = optionsList,
-                        BackgroundColor3 = Window.Theme.ButtonColor,
-                        BackgroundTransparency = 0.5,
-                        Size = UDim2.new(1, 0, 0, 25),
-                        Font = Enum.Font.Gotham,
-                        Text = option,
-                        TextColor3 = Window.Theme.TextColor,
-                        TextSize = 12,
-                        ZIndex = 11,
-                        AutoButtonColor = false
-                    })
-                    ApplyCorners(optionButton, 4)
-                    
-                    -- Eventos de hover
-                    optionButton.MouseEnter:Connect(function()
-                        local hoverTween = CreateTween(optionButton, {BackgroundColor3 = Window.Theme.AccentColor})
-                        hoverTween:Play()
-                    end)
-                    
-                    optionButton.MouseLeave:Connect(function()
-                        local leaveTween = CreateTween(optionButton, {BackgroundColor3 = Window.Theme.ButtonColor, BackgroundTransparency = 0.5})
-                        leaveTween:Play()
-                    end)
-                    
-                    optionButton.MouseButton1Click:Connect(function()
-                        dropdownObj.Value = option
-                        dropdownButton.Text = option
-                        
-                        if dropdownObj.Callback then
-                            dropdownObj.Callback(option)
-                        end
-                        
-                        -- Cerrar el dropdown
-                        toggleDropdown(false)
-                    end)
-                end
-            end
-            
-            -- Función para abrir/cerrar el dropdown
-            function toggleDropdown(state)
-                dropdownObj.IsOpen = state
-                
-                local targetSize = state and UDim2.new(1, 0, 0, math.min(120, #options * 35)) or UDim2.new(1, 0, 0, 0)
-                local targetVisible = state
-                local targetRotation = state and 180 or 0
-                
-                -- Ajustar tamaño del dropdown
-                dropdown.Size = state and UDim2.new(1, 0, 0, 65 + math.min(120, #options * 35)) or UDim2.new(1, 0, 0, 60)
-                
-                -- Animación del icono de flecha
-                local iconTween = CreateTween(dropdownIcon, {Rotation = targetRotation})
-                iconTween:Play()
-                
-                -- Animación del frame de opciones
-                if state then
-                    optionsFrame.Visible = true
-                    optionsFrame.Size = UDim2.new(1, 0, 0, 0)
-                    
-                    local sizeTween = CreateTween(optionsFrame, {Size = targetSize})
-                    sizeTween:Play()
-                else
-                    local sizeTween = CreateTween(optionsFrame, {Size = targetSize})
-                    sizeTween:Play()
-                    
-                    sizeTween.Completed:Connect(function()
-                        if not dropdownObj.IsOpen then
-                            optionsFrame.Visible = false
-                        end
-                    end)
-                end
-            end
-            
-            -- Manejar clic en el botón
-            dropdownButton.MouseButton1Click:Connect(function()
-                toggleDropdown(not dropdownObj.IsOpen)
-            end)
-            
-            -- Cerrar el dropdown cuando se hace clic fuera
-            UserInputService.InputBegan:Connect(function(input)
-                if input.UserInputType == Enum.UserInputType.MouseButton1 then
-                    local mousePos = UserInputService:GetMouseLocation()
-                    local dropdownPos = dropdown.AbsolutePosition
-                    local dropdownSize = dropdown.AbsoluteSize
-                    
-                    if dropdownObj.IsOpen and 
-                       (mousePos.X < dropdownPos.X or 
-                        mousePos.X > dropdownPos.X + dropdownSize.X or 
-                        mousePos.Y < dropdownPos.Y or 
-                        mousePos.Y > dropdownPos.Y + dropdownSize.Y) then
-                        toggleDropdown(false)
-                    end
-                end
-            end)
-            
-            -- Método para obtener el valor
-            function dropdownObj:GetValue()
-                return self.Value
-            end
-            
-            -- Método para establecer el valor
-            function dropdownObj:SetValue(value)
-                if table.find(self.Options, value) then
-                    self.Value = value
-                    dropdownButton.Text = value
-                    
-                    if self.Callback then
-                        self.Callback(value)
-                    end
-                end
-            end
-            
-            -- Método para refrescar las opciones
-            function dropdownObj:RefreshOptions(newOptions)
-                self.Options = newOptions
-                createOptions()
-                
-                -- Si el valor actual no está en las nuevas opciones, resetearlo
-                if not table.find(newOptions, self.Value) then
-                    self.Value = newOptions[1]
-                    dropdownButton.Text = self.Value or "Select..."
-                end
-            end
-            
-            -- Método para actualizar el tema
-            function dropdownObj:UpdateTheme(newTheme)
-                dropdownLabel.TextColor3 = newTheme.TextColor
-                dropdownButton.BackgroundColor3 = newTheme.ButtonColor
-                dropdownButton.TextColor3 = newTheme.TextColor
-                dropdownIcon.ImageColor3 = newTheme.TextColor
-                optionsFrame.BackgroundColor3 = newTheme.ButtonColor
-                optionsList.ScrollBarImageColor3 = newTheme.AccentColor
-                
-                -- Actualizar opciones
-                for _, child in pairs(optionsList:GetChildren()) do
-                    if child:IsA("TextButton") then
-                        child.BackgroundColor3 = newTheme.ButtonColor
-                        child.TextColor3 = newTheme.TextColor
-                    end
-                end
-            end
-            
-            -- Crear opciones iniciales
-            createOptions()
-            
-            table.insert(self.Elements, dropdownObj)
-            return dropdownObj
-        end
-        
-        -- Método para crear un TextBox
-        function Tab:AddTextBox(text, placeholder, default, callback)
-            local textbox = CreateObject("Frame", {
-                Name = "TextBox",
-                Parent = tabContent,
-                BackgroundTransparency = 1,
-                Size = UDim2.new(1, 0, 0, 60)
-            })
-            
-            local textboxLabel = CreateObject("TextLabel", {
-                Name = "Label",
-                Parent = textbox,
-                BackgroundTransparency = 1,
-                Position = UDim2.new(0, 0, 0, 0),
-                Size = UDim2.new(1, 0, 0, 20),
-                Font = Enum.Font.Gotham,
-                Text = text,
-                TextColor3 = Window.Theme.TextColor,
-                TextSize = 14,
-                TextXAlignment = Enum.TextXAlignment.Left
-            })
-            
-            local textboxContainer = CreateObject("Frame", {
-                Name = "Container",
-                Parent = textbox,
-                BackgroundColor3 = Window.Theme.ButtonColor,
-                Position = UDim2.new(0, 0, 0, 25),
-                Size = UDim2.new(1, 0, 0, 35)
-            })
-            ApplyCorners(textboxContainer, 4)
-            
-            local textboxInput = CreateObject("TextBox", {
-                Name = "Input",
-                Parent = textboxContainer,
-                BackgroundTransparency = 1,
-                Position = UDim2.new(0, 10, 0, 0),
-                Size = UDim2.new(1, -20, 1, 0),
-                Font = Enum.Font.Gotham,
-                Text = default or "",
-                PlaceholderText = placeholder or "Type here...",
-                TextColor3 = Window.Theme.TextColor,
-                PlaceholderColor3 = Color3.fromRGB(180, 180, 180),
-                TextSize = 14,
-                TextXAlignment = Enum.TextXAlignment.Left,
-                ClearTextOnFocus = false
-            })
-            
-            local textboxObj = {
-                Instance = textbox,
-                Type = "TextBox",
-                Value = default or "",
-                Callback = callback
-            }
-            
-            -- Manejar cambios en el texto
-            textboxInput.FocusLost:Connect(function(enterPressed)
-                textboxObj.Value = textboxInput.Text
-                
-                if textboxObj.Callback then
-                    textboxObj.Callback(textboxInput.Text, enterPressed)
-                end
-            end)
-            
-            -- Método para obtener el valor
-            function textboxObj:GetValue()
-                return self.Value
-            end
-            
-            -- Método para establecer el valor
-            function textboxObj:SetValue(value)
-                self.Value = value
-                textboxInput.Text = value
-                
-                if self.Callback then
-                    self.Callback(value, false)
-                end
-            end
-            
-            -- Método para actualizar el tema
-            function textboxObj:UpdateTheme(newTheme)
-                textboxLabel.TextColor3 = newTheme.TextColor
-                textboxContainer.BackgroundColor3 = newTheme.ButtonColor
-                textboxInput.TextColor3 = newTheme.TextColor
-            end
-            
-            table.insert(self.Elements, textboxObj)
-            return textboxObj
-        end
-        
-        -- Método para crear una sección de información
-        function Tab:AddSection(title)
-            local section = CreateObject("Frame", {
-                Name = "Section",
-                Parent = tabContent,
-                BackgroundColor3 = Window.Theme.ButtonColor,
-                BackgroundTransparency = 0.5,
-                Size = UDim2.new(1, 0, 0, 30)
-            })
-            ApplyCorners(section, 4)
-            
-            local sectionLabel = CreateObject("TextLabel", {
-                Name = "Label",
-                Parent = section,
-                BackgroundTransparency = 1,
-                Size = UDim2.new(1, 0, 1, 0),
-                Font = Enum.Font.GothamSemibold,
-                Text = title,
-                TextColor3 = Window.Theme.TextColor,
-                TextSize = 14
-            })
-            
-            local sectionObj = {
-                Instance = section,
-                Type = "Section"
-            }
-            
-            -- Método para actualizar el texto
-            function sectionObj:SetText(newText)
-                sectionLabel.Text = newText
-            end
-            
-            -- Método para actualizar el tema
-            function sectionObj:UpdateTheme(newTheme)
-                section.BackgroundColor3 = newTheme.ButtonColor
-                sectionLabel.TextColor3 = newTheme.TextColor
-            end
-            
-            table.insert(self.Elements, sectionObj)
-            return sectionObj
-        end
-        
-        -- Activar la pestaña al hacer clic
-        tabButton.MouseButton1Click:Connect(function()
-            if Window.ActiveTab then
-                -- Desactivar la pestaña actual
-                Window.ActiveTab.Content.Visible = false
-                local inactiveTween = CreateTween(Window.ActiveTab.Button, {BackgroundColor3 = Window.Theme.ButtonColor})
-                inactiveTween:Play()
-            end
-            
-            -- Activar la nueva pestaña
-            tabContent.Visible = true
-            local activeTween = CreateTween(tabButton, {BackgroundColor3 = Window.Theme.AccentColor})
-            activeTween:Play()
-            
-            Window.ActiveTab = Tab
-        end)
-        
-        table.insert(Window.Tabs, Tab)
-        
-        -- Si es la primera pestaña, activarla
-        if #Window.Tabs == 1 then
-            tabContent.Visible = true
-            tabButton.BackgroundColor3 = Window.Theme.AccentColor
-            Window.ActiveTab = Tab
-        end
-        
-        return Tab
-    end
-    
-    -- Método para mostrar notificación
-    function Window:Notify(title, content, duration)
-        duration = duration or 5
-        
-        local notification = CreateObject("Frame", {
-            Name = "Notification",
-            Parent = ScreenGui,
-            BackgroundColor3 = self.Theme.Container,
-            Position = UDim2.new(1, -20, 1, 20),
-            Size = UDim2.new(0, 250, 0, 80),
-            AnchorPoint = Vector2.new(1, 1)
-        })
-        ApplyCorners(notification, 6)
-        
-        local notifShadow = CreateObject("ImageLabel", {
-            Name = "Shadow",
-            Parent = notification,
-            BackgroundTransparency = 1,
-            Position = UDim2.new(0.5, 0, 0.5, 0),
-            Size = UDim2.new(1, 20, 1, 20),
-            AnchorPoint = Vector2.new(0.5, 0.5),
-            Image = "rbxassetid://5554236805",
-            ImageColor3 = Color3.fromRGB(0, 0, 0),
-            ImageTransparency = 0.6,
-            ScaleType = Enum.ScaleType.Slice,
-            SliceCenter = Rect.new(23, 23, 277, 277)
-        })
-        
-        local notifTitle = CreateObject("TextLabel", {
-            Name = "Title",
-            Parent = notification,
-            BackgroundTransparency = 1,
-            Position = UDim2.new(0, 10, 0, 5),
-            Size = UDim2.new(1, -20, 0, 20),
-            Font = Enum.Font.GothamBold,
-            Text = title,
-            TextColor3 = self.Theme.TextColor,
-            TextSize = 14,
-            TextXAlignment = Enum.TextXAlignment.Left
-        })
-        
-        local notifContent = CreateObject("TextLabel", {
-            Name = "Content",
-            Parent = notification,
-            BackgroundTransparency = 1,
-            Position = UDim2.new(0, 10, 0, 30),
-            Size = UDim2.new(1, -20, 0, 40),
-            Font = Enum.Font.Gotham,
-            Text = content,
-            TextColor3 = self.Theme.TextColor,
-            TextSize = 14,
-            TextWrapped = true,
-            TextXAlignment = Enum.TextXAlignment.Left,
-            TextYAlignment = Enum.TextYAlignment.Top
-        })
-        
-        -- Línea de progreso
-        local progressBar = CreateObject("Frame", {
-            Name = "ProgressBar",
-            Parent = notification,
-            BackgroundColor3 = self.Theme.AccentColor,
-            Position = UDim2.new(0, 0, 1, -2),
-            Size = UDim2.new(1, 0, 0, 2),
-            AnchorPoint = Vector2.new(0, 0)
-        })
-        
-        -- Animación de entrada
-        notification.Position = UDim2.new(1, 270, 1, -20)
-        local entryTween = CreateTween(notification, {Position = UDim2.new(1, -20, 1, -20)})
-        entryTween:Play()
-        
-        -- Animación de la barra de progreso
-        local progressTween = CreateTween(progressBar, {Size = UDim2.new(0, 0, 0, 2)}, duration)
-        progressTween:Play()
-        
-        -- Animación de salida después de la duración
-        local function dismiss()
-            local exitTween = CreateTween(notification, {Position = UDim2.new(1, 270, 1, -20)})
-            exitTween:Play()
-            
-            exitTween.Completed:Connect(function()
-                notification:Destroy()
-            end)
-        end
-        
-        -- Permitir cerrar la notificación haciendo clic
-        notification.InputBegan:Connect(function(input)
-            if input.UserInputType == Enum.UserInputType.MouseButton1 then
-                dismiss()
-            end
-        end)
-        
-        -- Programar eliminación
-        task.delay(duration, dismiss)
-        
-        return notification
-    end
-    
-    return Window
 end
 
--- Alias para acceder fácilmente a la biblioteca
-getgenv().PibblestoreLib = PibblestoreLib
+-- Create minimize button
+function PibblestoreLib:createMinimizeButton()
+    self.minimizeButton = Instance.new("TextButton")
+    self.minimizeButton.Name = "MinimizeButton"
+    self.minimizeButton.Size = UDim2.new(0, 30, 0, 30)
+    self.minimizeButton.Position = UDim2.new(1, -35, 0, 5)
+    self.minimizeButton.BackgroundColor3 = self.theme.accent
+    self.minimizeButton.BorderSizePixel = 0
+    self.minimizeButton.Text = "_"
+    self.minimizeButton.TextColor3 = Color3.white
+    self.minimizeButton.TextScaled = true
+    self.minimizeButton.Font = Enum.Font.GothamBold
+    self.minimizeButton.Parent = self.titleBar
+    
+    createCorner(self.minimizeButton, 6)
+    
+    -- Hover effect
+    self.minimizeButton.MouseEnter:Connect(function()
+        createTween(self.minimizeButton, {BackgroundColor3 = self.theme.hover}):Play()
+    end)
+    
+    self.minimizeButton.MouseLeave:Connect(function()
+        createTween(self.minimizeButton, {BackgroundColor3 = self.theme.accent}):Play()
+    end)
+    
+    -- Click event
+    self.minimizeButton.MouseButton1Click:Connect(function()
+        self:toggleMinimize()
+    end)
+end
+
+-- Setup minimize controls
+function PibblestoreLib:setupMinimizeControls()
+    -- PC: Left Control key
+    UserInputService.InputBegan:Connect(function(input, gameProcessed)
+        if not gameProcessed and input.KeyCode == Enum.KeyCode.LeftControl then
+            self:toggleMinimize()
+        end
+    end)
+    
+    -- Mobile: Create floating minimize button
+    if UserInputService.TouchEnabled then
+        self.mobileMinimizeButton = Instance.new("TextButton")
+        self.mobileMinimizeButton.Name = "MobileMinimizeButton"
+        self.mobileMinimizeButton.Size = UDim2.new(0, 50, 0, 50)
+        self.mobileMinimizeButton.Position = UDim2.new(1, -60, 0, 10)
+        self.mobileMinimizeButton.BackgroundColor3 = self.theme.accent
+        self.mobileMinimizeButton.BorderSizePixel = 0
+        self.mobileMinimizeButton.Text = "≡"
+        self.mobileMinimizeButton.TextColor3 = Color3.white
+        self.mobileMinimizeButton.TextScaled = true
+        self.mobileMinimizeButton.Font = Enum.Font.GothamBold
+        self.mobileMinimizeButton.Parent = self.screenGui
+        
+        createCorner(self.mobileMinimizeButton, 25)
+        
+        self.mobileMinimizeButton.MouseButton1Click:Connect(function()
+            self:toggleMinimize()
+        end)
+    end
+end
+
+-- Toggle minimize
+function PibblestoreLib:toggleMinimize()
+    self.minimized = not self.minimized
+    
+    if self.minimized then
+        createTween(self.mainFrame, {
+            Size = UDim2.new(0, 200, 0, 40),
+            Position = UDim2.new(0.5, -100, 0.5, -20)
+        }):Play()
+        self.contentFrame.Visible = false
+        self.minimizeButton.Text = "□"
+    else
+        createTween(self.mainFrame, {
+            Size = UDim2.new(0, 500, 0, 400),
+            Position = UDim2.new(0.5, -250, 0.5, -200)
+        }):Play()
+        self.contentFrame.Visible = true
+        self.minimizeButton.Text = "_"
+    end
+end
+
+-- Change theme
+function PibblestoreLib:setTheme(themeName)
+    if themes[themeName] then
+        self.theme = themes[themeName]
+        self:updateTheme()
+    end
+end
+
+-- Update theme colors
+function PibblestoreLib:updateTheme()
+    self.mainFrame.BackgroundColor3 = self.theme.primary
+    self.titleBar.BackgroundColor3 = self.theme.secondary
+    self.titleText.TextColor3 = self.theme.text
+    self.minimizeButton.BackgroundColor3 = self.theme.accent
+    
+    -- Update stroke
+    for _, child in pairs(self.mainFrame:GetChildren()) do
+        if child:IsA("UIStroke") then
+            child.Color = self.theme.border
+        end
+    end
+end
+
+-- Create Label
+function PibblestoreLib:createLabel(config)
+    local label = Instance.new("TextLabel")
+    label.Name = config.name or "Label"
+    label.Size = UDim2.new(1, -20, 0, config.height or 30)
+    label.BackgroundColor3 = config.background or self.theme.secondary
+    label.BorderSizePixel = 0
+    label.Text = config.text or "Label"
+    label.TextColor3 = config.textColor or self.theme.text
+    label.TextScaled = true
+    label.Font = config.font or Enum.Font.Gotham
+    label.Parent = self.contentFrame
+    
+    createCorner(label, 6)
+    createPadding(label, 5)
+    
+    return label
+end
+
+-- Create Button
+function PibblestoreLib:createButton(config)
+    local button = Instance.new("TextButton")
+    button.Name = config.name or "Button"
+    button.Size = UDim2.new(1, -20, 0, config.height or 35)
+    button.BackgroundColor3 = config.background or self.theme.accent
+    button.BorderSizePixel = 0
+    button.Text = config.text or "Button"
+    button.TextColor3 = config.textColor or Color3.white
+    button.TextScaled = true
+    button.Font = config.font or Enum.Font.GothamBold
+    button.Parent = self.contentFrame
+    
+    createCorner(button, 6)
+    
+    -- Hover effects
+    button.MouseEnter:Connect(function()
+        createTween(button, {BackgroundColor3 = self.theme.hover}):Play()
+    end)
+    
+    button.MouseLeave:Connect(function()
+        createTween(button, {BackgroundColor3 = config.background or self.theme.accent}):Play()
+    end)
+    
+    -- Click effect
+    button.MouseButton1Click:Connect(function()
+        createTween(button, {Size = UDim2.new(1, -25, 0, (config.height or 35) - 5)}):Play()
+        wait(0.1)
+        createTween(button, {Size = UDim2.new(1, -20, 0, config.height or 35)}):Play()
+        
+        if config.callback then
+            config.callback()
+        end
+    end)
+    
+    return button
+end
+
+-- Create Toggle
+function PibblestoreLib:createToggle(config)
+    local container = Instance.new("Frame")
+    container.Name = config.name or "Toggle"
+    container.Size = UDim2.new(1, -20, 0, 40)
+    container.BackgroundColor3 = self.theme.secondary
+    container.BorderSizePixel = 0
+    container.Parent = self.contentFrame
+    
+    createCorner(container, 6)
+    createPadding(container, 10)
+    
+    local label = Instance.new("TextLabel")
+    label.Size = UDim2.new(1, -60, 1, 0)
+    label.Position = UDim2.new(0, 0, 0, 0)
+    label.BackgroundTransparency = 1
+    label.Text = config.text or "Toggle"
+    label.TextColor3 = self.theme.text
+    label.TextScaled = true
+    label.TextXAlignment = Enum.TextXAlignment.Left
+    label.Font = Enum.Font.Gotham
+    label.Parent = container
+    
+    local toggleFrame = Instance.new("Frame")
+    toggleFrame.Size = UDim2.new(0, 50, 0, 25)
+    toggleFrame.Position = UDim2.new(1, -50, 0.5, -12.5)
+    toggleFrame.BackgroundColor3 = self.theme.border
+    toggleFrame.BorderSizePixel = 0
+    toggleFrame.Parent = container
+    
+    createCorner(toggleFrame, 12)
+    
+    local toggleButton = Instance.new("Frame")
+    toggleButton.Size = UDim2.new(0, 20, 0, 20)
+    toggleButton.Position = UDim2.new(0, 2.5, 0, 2.5)
+    toggleButton.BackgroundColor3 = Color3.white
+    toggleButton.BorderSizePixel = 0
+    toggleButton.Parent = toggleFrame
+    
+    createCorner(toggleButton, 10)
+    
+    local toggled = config.default or false
+    
+    local function updateToggle()
+        if toggled then
+            createTween(toggleButton, {Position = UDim2.new(0, 27.5, 0, 2.5)}):Play()
+            createTween(toggleFrame, {BackgroundColor3 = self.theme.success}):Play()
+        else
+            createTween(toggleButton, {Position = UDim2.new(0, 2.5, 0, 2.5)}):Play()
+            createTween(toggleFrame, {BackgroundColor3 = self.theme.border}):Play()
+        end
+        
+        if config.callback then
+            config.callback(toggled)
+        end
+    end
+    
+    toggleFrame.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            toggled = not toggled
+            updateToggle()
+        end
+    end)
+    
+    -- Initialize
+    updateToggle()
+    
+    return container
+end
+
+-- Create Slider
+function PibblestoreLib:createSlider(config)
+    local container = Instance.new("Frame")
+    container.Name = config.name or "Slider"
+    container.Size = UDim2.new(1, -20, 0, 50)
+    container.BackgroundColor3 = self.theme.secondary
+    container.BorderSizePixel = 0
+    container.Parent = self.contentFrame
+    
+    createCorner(container, 6)
+    createPadding(container, 10)
+    
+    local label = Instance.new("TextLabel")
+    label.Size = UDim2.new(1, 0, 0, 20)
+    label.Position = UDim2.new(0, 0, 0, 0)
+    label.BackgroundTransparency = 1
+    label.Text = config.text or "Slider"
+    label.TextColor3 = self.theme.text
+    label.TextScaled = true
+    label.TextXAlignment = Enum.TextXAlignment.Left
+    label.Font = Enum.Font.Gotham
+    label.Parent = container
+    
+    local sliderFrame = Instance.new("Frame")
+    sliderFrame.Size = UDim2.new(1, 0, 0, 6)
+    sliderFrame.Position = UDim2.new(0, 0, 1, -16)
+    sliderFrame.BackgroundColor3 = self.theme.border
+    sliderFrame.BorderSizePixel = 0
+    sliderFrame.Parent = container
+    
+    createCorner(sliderFrame, 3)
+    
+    local sliderFill = Instance.new("Frame")
+    sliderFill.Size = UDim2.new(0, 0, 1, 0)
+    sliderFill.Position = UDim2.new(0, 0, 0, 0)
+    sliderFill.BackgroundColor3 = self.theme.accent
+    sliderFill.BorderSizePixel = 0
+    sliderFill.Parent = sliderFrame
+    
+    createCorner(sliderFill, 3)
+    
+    local sliderButton = Instance.new("Frame")
+    sliderButton.Size = UDim2.new(0, 12, 0, 12)
+    sliderButton.Position = UDim2.new(0, -6, 0, -3)
+    sliderButton.BackgroundColor3 = Color3.white
+    sliderButton.BorderSizePixel = 0
+    sliderButton.Parent = sliderFrame
+    
+    createCorner(sliderButton, 6)
+    createStroke(sliderButton, self.theme.accent, 2)
+    
+    local valueLabel = Instance.new("TextLabel")
+    valueLabel.Size = UDim2.new(0, 50, 0, 20)
+    valueLabel.Position = UDim2.new(1, -50, 0, 0)
+    valueLabel.BackgroundTransparency = 1
+    valueLabel.Text = tostring(config.min or 0)
+    valueLabel.TextColor3 = self.theme.textSecondary
+    valueLabel.TextScaled = true
+    valueLabel.Font = Enum.Font.Gotham
+    valueLabel.Parent = container
+    
+    local dragging = false
+    local currentValue = config.default or config.min or 0
+    local minValue = config.min or 0
+    local maxValue = config.max or 100
+    
+    local function updateSlider(value)
+        currentValue = math.clamp(value, minValue, maxValue)
+        local percentage = (currentValue - minValue) / (maxValue - minValue)
+        
+        createTween(sliderFill, {Size = UDim2.new(percentage, 0, 1, 0)}):Play()
+        createTween(sliderButton, {Position = UDim2.new(percentage, -6, 0, -3)}):Play()
+        
+        valueLabel.Text = tostring(math.floor(currentValue))
+        
+        if config.callback then
+            config.callback(currentValue)
+        end
+    end
+    
+    sliderFrame.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = true
+        end
+    end)
+    
+    sliderFrame.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = false
+        end
+    end)
+    
+    sliderFrame.InputChanged:Connect(function(input)
+        if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+            local relativeX = input.Position.X - sliderFrame.AbsolutePosition.X
+            local percentage = math.clamp(relativeX / sliderFrame.AbsoluteSize.X, 0, 1)
+            local value = minValue + (maxValue - minValue) * percentage
+            updateSlider(value)
+        end
+    end)
+    
+    -- Initialize
+    updateSlider(currentValue)
+    
+    return container
+end
+
+-- Create Dropdown
+function PibblestoreLib:createDropdown(config)
+    local container = Instance.new("Frame")
+    container.Name = config.name or "Dropdown"
+    container.Size = UDim2.new(1, -20, 0, 35)
+    container.BackgroundColor3 = self.theme.secondary
+    container.BorderSizePixel = 0
+    container.Parent = self.contentFrame
+    
+    createCorner(container, 6)
+    
+    local button = Instance.new("TextButton")
+    button.Size = UDim2.new(1, 0, 1, 0)
+    button.BackgroundTransparency = 1
+    button.Text = config.default or config.options[1] or "Select Option"
+    button.TextColor3 = self.theme.text
+    button.TextScaled = true
+    button.Font = Enum.Font.Gotham
+    button.Parent = container
+    
+    createPadding(button, 10)
+    
+    local arrow = Instance.new("TextLabel")
+    arrow.Size = UDim2.new(0, 20, 1, 0)
+    arrow.Position = UDim2.new(1, -25, 0, 0)
+    arrow.BackgroundTransparency = 1
+    arrow.Text = "▼"
+    arrow.TextColor3 = self.theme.textSecondary
+    arrow.TextScaled = true
+    arrow.Font = Enum.Font.Gotham
+    arrow.Parent = container
+    
+    local dropdown = Instance.new("Frame")
+    dropdown.Size = UDim2.new(1, 0, 0, 0)
+    dropdown.Position = UDim2.new(0, 0, 1, 5)
+    dropdown.BackgroundColor3 = self.theme.primary
+    dropdown.BorderSizePixel = 0
+    dropdown.Visible = false
+    dropdown.Parent = container
+    
+    createCorner(dropdown, 6)
+    createStroke(dropdown, self.theme.border, 1)
+    
+    local optionLayout = Instance.new("UIListLayout")
+    optionLayout.SortOrder = Enum.SortOrder.LayoutOrder
+    optionLayout.Parent = dropdown
+    
+    local isOpen = false
+    
+    local function createOption(text, index)
+        local option = Instance.new("TextButton")
+        option.Size = UDim2.new(1, 0, 0, 30)
+        option.BackgroundColor3 = self.theme.primary
+        option.BorderSizePixel = 0
+        option.Text = text
+        option.TextColor3 = self.theme.text
+        option.TextScaled = true
+        option.Font = Enum.Font.Gotham
+        option.Parent = dropdown
+        
+        createPadding(option, 5)
+        
+        option.MouseEnter:Connect(function()
+            createTween(option, {BackgroundColor3 = self.theme.hover}):Play()
+        end)
+        
+        option.MouseLeave:Connect(function()
+            createTween(option, {BackgroundColor3 = self.theme.primary}):Play()
+        end)
+        
+        option.MouseButton1Click:Connect(function()
+            button.Text = text
+            isOpen = false
+            
+            createTween(dropdown, {Size = UDim2.new(1, 0, 0, 0)}):Play()
+            createTween(arrow, {Rotation = 0}):Play()
+            
+            wait(0.3)
+            dropdown.Visible = false
+            
+            if config.callback then
+                config.callback(text, index)
+            end
+        end)
+    end
+    
+    -- Create options
+    for i, option in ipairs(config.options or {}) do
+        createOption(option, i)
+    end
+    
+    button.MouseButton1Click:Connect(function()
+        isOpen = not isOpen
+        
+        if isOpen then
+            dropdown.Visible = true
+            local optionCount = #(config.options or {})
+            createTween(dropdown, {Size = UDim2.new(1, 0, 0, optionCount * 30)}):Play()
+            createTween(arrow, {Rotation = 180}):Play()
+        else
+            createTween(dropdown, {Size = UDim2.new(1, 0, 0, 0)}):Play()
+            createTween(arrow, {Rotation = 0}):Play()
+            
+            wait(0.3)
+            dropdown.Visible = false
+        end
+    end)
+    
+    return container
+end
+
+-- Create TextLabel (Enhanced)
+function PibblestoreLib:createTextLabel(config)
+    local textLabel = Instance.new("TextLabel")
+    textLabel.Name = config.name or "TextLabel"
+    textLabel.Size = UDim2.new(1, -20, 0, config.height or 40)
+    textLabel.BackgroundColor3 = config.background or self.theme.secondary
+    textLabel.BorderSizePixel = 0
+    textLabel.Text = config.text or "Text Label"
+    textLabel.TextColor3 = config.textColor or self.theme.text
+    textLabel.TextScaled = config.textScaled ~= false
+    textLabel.Font = config.font or Enum.Font.Gotham
+    textLabel.TextXAlignment = config.textXAlignment or Enum.TextXAlignment.Center
+    textLabel.TextYAlignment = config.textYAlignment or Enum.TextYAlignment.Center
+    textLabel.Parent = self.contentFrame
+    
+    createCorner(textLabel, 6)
+    createPadding(textLabel, config.padding or 10)
+    
+    return textLabel
+end
+
+-- Create Notification
+function PibblestoreLib:createNotification(config)
+    local notification = Instance.new("Frame")
+    notification.Name = "Notification"
+    notification.Size = UDim2.new(0, 300, 0, 80)
+    notification.Position = UDim2.new(1, -320, 0, 20 + (#self.notifications * 90))
+    notification.BackgroundColor3 = config.background or self.theme.primary
+    notification.BorderSizePixel = 0
+    notification.Parent = self.screenGui
+    
+    -- Set notification type color
+    local notificationColor = self.theme.accent
+    if config.type == "success" then
+        notificationColor = self.theme.success
+    elseif config.type == "warning" then
+        notificationColor = self.theme.warning
+    elseif config.type == "error" then
+        notificationColor = self.theme.error
+    end
+    
+    createCorner(notification, 8)
+    createStroke(notification, notificationColor, 2)
+    
+    -- Icon
+    local icon = Instance.new("TextLabel")
+    icon.Size = UDim2.new(0, 30, 0, 30)
+    icon.Position = UDim2.new(0, 10, 0, 10)
+    icon.BackgroundTransparency = 1
+    icon.Text = config.icon or "ℹ"
+    icon.TextColor3 = notificationColor
+    icon.TextScaled = true
+    icon.Font = Enum.Font.GothamBold
+    icon.Parent = notification
+    
+    -- Title
+    local title = Instance.new("TextLabel")
+    title.Size = UDim2.new(1, -90, 0, 25)
+    title.Position = UDim2.new(0, 50, 0, 5)
+    title.BackgroundTransparency = 1
+    title.Text = config.title or "Notification"
+    title.TextColor3 = self.theme.text
+    title.TextScaled = true
+    title.TextXAlignment = Enum.TextXAlignment.Left
+    title.Font = Enum.Font.GothamBold
+    title.Parent = notification
+    
+    -- Message
+    local message = Instance.new("TextLabel")
+    message.Size = UDim2.new(1, -90, 0, 20)
+    message.Position = UDim2.new(0, 50, 0, 30)
+    message.BackgroundTransparency = 1
+    message.Text = config.message or "This is a notification message"
+    message.TextColor3 = self.theme.textSecondary
+    message.TextScaled = true
+    message.TextXAlignment = Enum.TextXAlignment.Left
+    message.Font = Enum.Font.Gotham
+    message.Parent = notification
+    
+    -- Close button
+    local closeButton = Instance.new("TextButton")
+    closeButton.Size = UDim2.new(0, 20, 0, 20)
+    closeButton.Position = UDim2.new(1, -25, 0, 5)
+    closeButton.BackgroundTransparency = 1
+    closeButton.Text = "×"
+    closeButton.TextColor3 = self.theme.textSecondary
+    closeButton.TextScaled = true
+    closeButton.Font = Enum.Font.GothamBold
+    closeButton.Parent = notification
+    
+    -- Progress bar
+    local progressBar = Instance.new("Frame")
+    progressBar.Size = UDim2.new(1, 0, 0, 3)
+    progressBar.Position = UDim2.new(0, 0, 1, -3)
+    progressBar.BackgroundColor3 = notificationColor
+    progressBar.BorderSizePixel = 0
+    progressBar.Parent = notification
+    
+    -- Animate notification in
+    notification.Position = UDim2.new(1, 0, 0, 20 + (#self.notifications * 90))
+    createTween(notification, {Position = UDim2.new(1, -320, 0, 20 + (#self.notifications * 90))}):Play()
+    
+    -- Add to notifications list
+    table.insert(self.notifications, notification)
+    
+    -- Auto-dismiss timer
+    local duration = config.duration or 5
+    local startTime = tick()
+    
+    local function updateProgressBar()
+        local elapsed = tick() - startTime
+        local progress = elapsed / duration
+        
+        if progress >= 1 then
+            self:removeNotification(notification)
+            return
+        end
+        
+        createTween(progressBar, {Size = UDim2.new(1 - progress, 0, 0, 3)}):Play()
+    end
+    
+    local progressConnection
+    progressConnection = RunService.Heartbeat:Connect(updateProgressBar)
+    
+    -- Manual close
+    closeButton.MouseButton1Click:Connect(function()
+        if progressConnection then
+            progressConnection:Disconnect()
+        end
+        self:removeNotification(notification)
+    end)
+    
+    -- Hover to pause
+    notification.MouseEnter:Connect(function()
+        if progressConnection then
+            progressConnection:Disconnect()
+        end
+    end)
+    
+    notification.MouseLeave:Connect(function()
+        if notification.Parent then
+            startTime = tick() - (duration * (1 - progressBar.Size.X.Scale))
+            progressConnection = RunService.Heartbeat:Connect(updateProgressBar)
+        end
+    end)
+    
+    return notification
+end
+
+-- Remove notification
+function PibblestoreLib:removeNotification(notification)
+    -- Find notification in list
+    for i, notif in ipairs(self.notifications) do
+        if notif == notification then
+            table.remove(self.notifications, i)
+            break
+        end
+    end
+    
+    -- Animate out
+    createTween(notification, {
+        Position = UDim2.new(1, 0, notification.Position.Y.Scale, notification.Position.Y.Offset),
+        Size = UDim2.new(0, 0, 0, 80)
+    }):Play()
+    
+    -- Remove after animation
+    wait(0.3)
+    if notification.Parent then
+        notification:Destroy()
+    end
+    
+    -- Reposition remaining notifications
+    for i, notif in ipairs(self.notifications) do
+        createTween(notif, {Position = UDim2.new(1, -320, 0, 20 + ((i - 1) * 90))}):Play()
+    end
+end
+
+-- Create TextBox
+function PibblestoreLib:createTextBox(config)
+    local container = Instance.new("Frame")
+    container.Name = config.name or "TextBox"
+    container.Size = UDim2.new(1, -20, 0, 50)
+    container.BackgroundColor3 = self.theme.secondary
+    container.BorderSizePixel = 0
+    container.Parent = self.contentFrame
+    
+    createCorner(container, 6)
+    createPadding(container, 10)
+    
+    local label = Instance.new("TextLabel")
+    label.Size = UDim2.new(1, 0, 0, 20)
+    label.Position = UDim2.new(0, 0, 0, 0)
+    label.BackgroundTransparency = 1
+    label.Text = config.label or "Input"
+    label.TextColor3 = self.theme.text
+    label.TextScaled = true
+    label.TextXAlignment = Enum.TextXAlignment.Left
+    label.Font = Enum.Font.Gotham
+    label.Parent = container
+    
+    local textBox = Instance.new("TextBox")
+    textBox.Size = UDim2.new(1, 0, 0, 25)
+    textBox.Position = UDim2.new(0, 0, 0, 25)
+    textBox.BackgroundColor3 = self.theme.primary
+    textBox.BorderSizePixel = 0
+    textBox.Text = config.default or ""
+    textBox.PlaceholderText = config.placeholder or "Enter text..."
+    textBox.TextColor3 = self.theme.text
+    textBox.PlaceholderColor3 = self.theme.textSecondary
+    textBox.TextScaled = true
+    textBox.Font = Enum.Font.Gotham
+    textBox.ClearTextOnFocus = false
+    textBox.Parent = container
+    
+    createCorner(textBox, 4)
+    createStroke(textBox, self.theme.border, 1)
+    createPadding(textBox, 5)
+    
+    -- Focus effects
+    textBox.Focused:Connect(function()
+        createTween(textBox:FindFirstChild("UIStroke"), {Color = self.theme.accent}):Play()
+    end)
+    
+    textBox.FocusLost:Connect(function()
+        createTween(textBox:FindFirstChild("UIStroke"), {Color = self.theme.border}):Play()
+        
+        if config.callback then
+            config.callback(textBox.Text)
+        end
+    end)
+    
+    return container
+end
+
+-- Create Section
+function PibblestoreLib:createSection(config)
+    local section = Instance.new("Frame")
+    section.Name = config.name or "Section"
+    section.Size = UDim2.new(1, -20, 0, 30)
+    section.BackgroundTransparency = 1
+    section.Parent = self.contentFrame
+    
+    local line = Instance.new("Frame")
+    line.Size = UDim2.new(1, -100, 0, 1)
+    line.Position = UDim2.new(0, 0, 0.5, 0)
+    line.BackgroundColor3 = self.theme.border
+    line.BorderSizePixel = 0
+    line.Parent = section
+    
+    local title = Instance.new("TextLabel")
+    title.Size = UDim2.new(0, 80, 1, 0)
+    title.Position = UDim2.new(1, -80, 0, 0)
+    title.BackgroundTransparency = 1
+    title.Text = config.title or "Section"
+    title.TextColor3 = self.theme.textSecondary
+    title.TextScaled = true
+    title.Font = Enum.Font.GothamBold
+    title.Parent = section
+    
+    return section
+end
+
+-- Create Progress Bar
+function PibblestoreLib:createProgressBar(config)
+    local container = Instance.new("Frame")
+    container.Name = config.name or "ProgressBar"
+    container.Size = UDim2.new(1, -20, 0, 50)
+    container.BackgroundColor3 = self.theme.secondary
+    container.BorderSizePixel = 0
+    container.Parent = self.contentFrame
+    
+    createCorner(container, 6)
+    createPadding(container, 10)
+    
+    local label = Instance.new("TextLabel")
+    label.Size = UDim2.new(1, -50, 0, 20)
+    label.Position = UDim2.new(0, 0, 0, 0)
+    label.BackgroundTransparency = 1
+    label.Text = config.text or "Progress"
+    label.TextColor3 = self.theme.text
+    label.TextScaled = true
+    label.TextXAlignment = Enum.TextXAlignment.Left
+    label.Font = Enum.Font.Gotham
+    label.Parent = container
+    
+    local percentage = Instance.new("TextLabel")
+    percentage.Size = UDim2.new(0, 40, 0, 20)
+    percentage.Position = UDim2.new(1, -40, 0, 0)
+    percentage.BackgroundTransparency = 1
+    percentage.Text = "0%"
+    percentage.TextColor3 = self.theme.textSecondary
+    percentage.TextScaled = true
+    percentage.Font = Enum.Font.Gotham
+    percentage.Parent = container
+    
+    local progressFrame = Instance.new("Frame")
+    progressFrame.Size = UDim2.new(1, 0, 0, 8)
+    progressFrame.Position = UDim2.new(0, 0, 1, -18)
+    progressFrame.BackgroundColor3 = self.theme.border
+    progressFrame.BorderSizePixel = 0
+    progressFrame.Parent = container
+    
+    createCorner(progressFrame, 4)
+    
+    local progressFill = Instance.new("Frame")
+    progressFill.Size = UDim2.new(0, 0, 1, 0)
+    progressFill.Position = UDim2.new(0, 0, 0, 0)
+    progressFill.BackgroundColor3 = self.theme.accent
+    progressFill.BorderSizePixel = 0
+    progressFill.Parent = progressFrame
+    
+    createCorner(progressFill, 4)
+    
+    local function updateProgress(value)
+        local clampedValue = math.clamp(value, 0, 100)
+        createTween(progressFill, {Size = UDim2.new(clampedValue / 100, 0, 1, 0)}):Play()
+        percentage.Text = math.floor(clampedValue) .. "%"
+    end
+    
+    -- Initialize
+    updateProgress(config.value or 0)
+    
+    -- Return update function
+    container.UpdateProgress = updateProgress
+    
+    return container
+end
+
+-- Create Keybind
+function PibblestoreLib:createKeybind(config)
+    local container = Instance.new("Frame")
+    container.Name = config.name or "Keybind"
+    container.Size = UDim2.new(1, -20, 0, 40)
+    container.BackgroundColor3 = self.theme.secondary
+    container.BorderSizePixel = 0
+    container.Parent = self.contentFrame
+    
+    createCorner(container, 6)
+    createPadding(container, 10)
+    
+    local label = Instance.new("TextLabel")
+    label.Size = UDim2.new(1, -80, 1, 0)
+    label.Position = UDim2.new(0, 0, 0, 0)
+    label.BackgroundTransparency = 1
+    label.Text = config.text or "Keybind"
+    label.TextColor3 = self.theme.text
+    label.TextScaled = true
+    label.TextXAlignment = Enum.TextXAlignment.Left
+    label.Font = Enum.Font.Gotham
+    label.Parent = container
+    
+    local keybindButton = Instance.new("TextButton")
+    keybindButton.Size = UDim2.new(0, 70, 0, 25)
+    keybindButton.Position = UDim2.new(1, -70, 0.5, -12.5)
+    keybindButton.BackgroundColor3 = self.theme.accent
+    keybindButton.BorderSizePixel = 0
+    keybindButton.Text = config.key or "None"
+    keybindButton.TextColor3 = Color3.white
+    keybindButton.TextScaled = true
+    keybindButton.Font = Enum.Font.GothamBold
+    keybindButton.Parent = container
+    
+    createCorner(keybindButton, 4)
+    
+    local listening = false
+    local currentKey = config.key
+    
+    keybindButton.MouseButton1Click:Connect(function()
+        if listening then return end
+        
+        listening = true
+        keybindButton.Text = "..."
+        
+        local connection
+        connection = UserInputService.InputBegan:Connect(function(input, gameProcessed)
+            if gameProcessed then return end
+            
+            if input.UserInputType == Enum.UserInputType.Keyboard then
+                currentKey = input.KeyCode.Name
+                keybindButton.Text = currentKey
+                listening = false
+                connection:Disconnect()
+                
+                if config.callback then
+                    config.callback(currentKey)
+                end
+            end
+        end)
+    end)
+    
+    -- Set up keybind listener
+    if config.callback then
+        UserInputService.InputBegan:Connect(function(input, gameProcessed)
+            if gameProcessed or listening then return end
+            
+            if input.UserInputType == Enum.UserInputType.Keyboard and input.KeyCode.Name == currentKey then
+                config.callback(currentKey)
+            end
+        end)
+    end
+    
+    return container
+end
+
+-- Utility Methods
+function PibblestoreLib:addSeparator()
+    local separator = Instance.new("Frame")
+    separator.Name = "Separator"
+    separator.Size = UDim2.new(1, -40, 0, 1)
+    separator.BackgroundColor3 = self.theme.border
+    separator.BorderSizePixel = 0
+    separator.Parent = self.contentFrame
+    
+    return separator
+end
+
+function PibblestoreLib:addSpace(height)
+    local space = Instance.new("Frame")
+    space.Name = "Space"
+    space.Size = UDim2.new(1, 0, 0, height or 10)
+    space.BackgroundTransparency = 1
+    space.Parent = self.contentFrame
+    
+    return space
+end
+
+-- Show/Hide Methods
+function PibblestoreLib:show()
+    self.screenGui.Enabled = true
+    createTween(self.mainFrame, {
+        Position = UDim2.new(0.5, -250, 0.5, -200),
+        Size = UDim2.new(0, 500, 0, 400)
+    }):Play()
+end
+
+function PibblestoreLib:hide()
+    createTween(self.mainFrame, {
+        Position = UDim2.new(0.5, -250, 1, 100),
+        Size = UDim2.new(0, 500, 0, 400)
+    }):Play()
+    
+    wait(0.3)
+    self.screenGui.Enabled = false
+end
+
+function PibblestoreLib:destroy()
+    if self.screenGui then
+        self.screenGui:Destroy()
+    end
+end
+
+-- Example Usage and Documentation
+--[[
+-- Basic Usage:
+local lib = PibblestoreLib.new({
+    title = "My GUI",
+    theme = "dark" -- "light", "dark", "aquamarine"
+})
+
+-- Create components:
+lib:createLabel({
+    name = "WelcomeLabel",
+    text = "Welcome to PibblestoreLib!",
+    height = 40
+})
+
+lib:createButton({
+    name = "TestButton",
+    text = "Click Me!",
+    callback = function()
+        print("Button clicked!")
+    end
+})
+
+lib:createToggle({
+    name = "TestToggle",
+    text = "Enable Feature",
+    default = false,
+    callback = function(value)
+        print("Toggle:", value)
+    end
+})
+
+lib:createSlider({
+    name = "VolumeSlider",
+    text = "Volume",
+    min = 0,
+    max = 100,
+    default = 50,
+    callback = function(value)
+        print("Volume:", value)
+    end
+})
+
+lib:createDropdown({
+    name = "ThemeSelector",
+    options = {"Light", "Dark", "Aquamarine"},
+    default = "Dark",
+    callback = function(selected, index)
+        print("Selected:", selected)
+    end
+})
+
+lib:createNotification({
+    title = "Success!",
+    message = "Operation completed successfully",
+    type = "success", -- "success", "warning", "error", "info"
+    duration = 3
+})
+
+-- Change theme:
+lib:setTheme("aquamarine")
+
+-- Show/Hide:
+lib:show()
+lib:hide()
+--]]
 
 return PibblestoreLib
