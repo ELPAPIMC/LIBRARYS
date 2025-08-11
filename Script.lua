@@ -1,285 +1,252 @@
--- Script de Autenticación con Key para Roblox
+-- Sistema de Autenticación con Key
 -- Key correcta: LezzoStoreAccess
 
 local Players = game:GetService("Players")
-local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
+local RunService = game:GetService("RunService")
 
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 
--- Key correcta
+-- Configuración
 local CORRECT_KEY = "LezzoStoreAccess"
-
--- URL del script a cargar
 local SCRIPT_URL = "https://api.luarmor.net/files/v3/loaders/f927290098f4333a9d217cbecbe6e988.lua"
 
--- Variable global para recordar si ya se autenticó
-if not _G.KeyAuthenticated then
-    _G.KeyAuthenticated = false
+-- Verificar si ya se ingresó la key anteriormente
+local keyFile = "LezzoStore_KeyData_" .. player.UserId .. ".txt"
+
+-- Función para verificar si la key ya fue ingresada
+local function hasValidKey()
+    if readfile and isfile then
+        if isfile(keyFile) then
+            local savedKey = readfile(keyFile)
+            return savedKey == CORRECT_KEY
+        end
+    end
+    return false
+end
+
+-- Función para guardar la key
+local function saveKey(key)
+    if writefile then
+        writefile(keyFile, key)
+    end
 end
 
 -- Función para cargar el script principal
 local function loadMainScript()
-    print("Cargando script principal...")
-    
-    -- Intentar cargar el script
     local success, result = pcall(function()
-        return loadstring(game:HttpGet(SCRIPT_URL))()
+        loadstring(game:HttpGet(SCRIPT_URL))()
     end)
     
     if success then
-        print("Script cargado exitosamente!")
+        print("✅ Script cargado correctamente!")
     else
-        print("Error al cargar el script:", result)
+        warn("❌ Error al cargar el script: " .. tostring(result))
     end
 end
 
--- Si ya está autenticado, cargar directamente el script
-if _G.KeyAuthenticated then
-    print("Key ya autenticada, cargando script directamente...")
+-- Si ya tiene la key válida, cargar directamente
+if hasValidKey() then
     loadMainScript()
     return
 end
 
--- Crear la GUI
+-- Crear interfaz de autenticación
 local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "KeyAuthGUI"
-screenGui.ResetOnSpawn = false
+screenGui.Name = "LezzoStoreKeySystem"
 screenGui.Parent = playerGui
+screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 
 -- Frame principal
 local mainFrame = Instance.new("Frame")
 mainFrame.Name = "MainFrame"
-mainFrame.Size = UDim2.new(0, 400, 0, 250)
-mainFrame.Position = UDim2.new(0.5, -200, 0.5, -125)
-mainFrame.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
-mainFrame.BorderSizePixel = 0
 mainFrame.Parent = screenGui
+mainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+mainFrame.BorderSizePixel = 0
+mainFrame.Position = UDim2.new(0.5, -200, 0.5, -150)
+mainFrame.Size = UDim2.new(0, 400, 0, 300)
+mainFrame.Active = true
+mainFrame.Draggable = true
 
 -- Esquinas redondeadas
 local corner = Instance.new("UICorner")
-corner.CornerRadius = UDim.new(0, 12)
+corner.CornerRadius = UDim.new(0, 10)
 corner.Parent = mainFrame
+
+-- Sombra
+local shadow = Instance.new("Frame")
+shadow.Name = "Shadow"
+shadow.Parent = screenGui
+shadow.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+shadow.BackgroundTransparency = 0.7
+shadow.BorderSizePixel = 0
+shadow.Position = UDim2.new(0.5, -205, 0.5, -145)
+shadow.Size = UDim2.new(0, 410, 0, 310)
+shadow.ZIndex = mainFrame.ZIndex - 1
+
+local shadowCorner = Instance.new("UICorner")
+shadowCorner.CornerRadius = UDim.new(0, 10)
+shadowCorner.Parent = shadow
 
 -- Título
 local titleLabel = Instance.new("TextLabel")
 titleLabel.Name = "TitleLabel"
+titleLabel.Parent = mainFrame
+titleLabel.BackgroundTransparency = 1
+titleLabel.Position = UDim2.new(0, 0, 0, 20)
 titleLabel.Size = UDim2.new(1, 0, 0, 50)
-titleLabel.Position = UDim2.new(0, 0, 0, 0)
-titleLabel.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-titleLabel.BorderSizePixel = 0
-titleLabel.Text = "Set Your Key"
+titleLabel.Font = Enum.Font.GothamBold
+titleLabel.Text = "🔐 Set Your Key"
 titleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
 titleLabel.TextScaled = true
-titleLabel.Font = Enum.Font.GothamBold
-titleLabel.Parent = mainFrame
+titleLabel.TextSize = 24
 
--- Esquinas del título
-local titleCorner = Instance.new("UICorner")
-titleCorner.CornerRadius = UDim.new(0, 12)
-titleCorner.Parent = titleLabel
+-- Subtítulo
+local subtitleLabel = Instance.new("TextLabel")
+subtitleLabel.Name = "SubtitleLabel"
+subtitleLabel.Parent = mainFrame
+subtitleLabel.BackgroundTransparency = 1
+subtitleLabel.Position = UDim2.new(0, 20, 0, 80)
+subtitleLabel.Size = UDim2.new(1, -40, 0, 30)
+subtitleLabel.Font = Enum.Font.Gotham
+subtitleLabel.Text = "Ingresa tu key para acceder al script:"
+subtitleLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+subtitleLabel.TextScaled = true
+subtitleLabel.TextSize = 14
 
--- TextBox para la key
+-- Campo de texto para la key
 local keyTextBox = Instance.new("TextBox")
 keyTextBox.Name = "KeyTextBox"
-keyTextBox.Size = UDim2.new(0.8, 0, 0, 40)
-keyTextBox.Position = UDim2.new(0.1, 0, 0.35, 0)
+keyTextBox.Parent = mainFrame
 keyTextBox.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
 keyTextBox.BorderSizePixel = 0
-keyTextBox.Text = ""
-keyTextBox.PlaceholderText = "Ingresa tu key aquí..."
-keyTextBox.TextColor3 = Color3.fromRGB(255, 255, 255)
-keyTextBox.PlaceholderColor3 = Color3.fromRGB(150, 150, 150)
-keyTextBox.TextScaled = true
+keyTextBox.Position = UDim2.new(0, 20, 0, 130)
+keyTextBox.Size = UDim2.new(1, -40, 0, 40)
 keyTextBox.Font = Enum.Font.Gotham
-keyTextBox.Parent = mainFrame
+keyTextBox.PlaceholderText = "Ingresa tu key aquí..."
+keyTextBox.Text = ""
+keyTextBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+keyTextBox.TextScaled = true
+keyTextBox.TextSize = 16
 
--- Esquinas del TextBox
-local textBoxCorner = Instance.new("UICorner")
-textBoxCorner.CornerRadius = UDim.new(0, 8)
-textBoxCorner.Parent = keyTextBox
+local keyBoxCorner = Instance.new("UICorner")
+keyBoxCorner.CornerRadius = UDim.new(0, 5)
+keyBoxCorner.Parent = keyTextBox
 
 -- Botón de verificación
 local verifyButton = Instance.new("TextButton")
 verifyButton.Name = "VerifyButton"
-verifyButton.Size = UDim2.new(0.6, 0, 0, 40)
-verifyButton.Position = UDim2.new(0.2, 0, 0.6, 0)
-verifyButton.BackgroundColor3 = Color3.fromRGB(0, 162, 255)
+verifyButton.Parent = mainFrame
+verifyButton.BackgroundColor3 = Color3.fromRGB(0, 170, 0)
 verifyButton.BorderSizePixel = 0
-verifyButton.Text = "Verificar Key"
+verifyButton.Position = UDim2.new(0, 20, 0, 190)
+verifyButton.Size = UDim2.new(1, -40, 0, 40)
+verifyButton.Font = Enum.Font.GothamBold
+verifyButton.Text = "✓ Verificar Key"
 verifyButton.TextColor3 = Color3.fromRGB(255, 255, 255)
 verifyButton.TextScaled = true
-verifyButton.Font = Enum.Font.GothamBold
-verifyButton.Parent = mainFrame
+verifyButton.TextSize = 16
 
--- Esquinas del botón
 local buttonCorner = Instance.new("UICorner")
-buttonCorner.CornerRadius = UDim.new(0, 8)
+buttonCorner.CornerRadius = UDim.new(0, 5)
 buttonCorner.Parent = verifyButton
 
 -- Label de estado
 local statusLabel = Instance.new("TextLabel")
 statusLabel.Name = "StatusLabel"
-statusLabel.Size = UDim2.new(1, 0, 0, 30)
-statusLabel.Position = UDim2.new(0, 0, 0.8, 0)
-statusLabel.BackgroundTransparency = 1
-statusLabel.Text = ""
-statusLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
-statusLabel.TextScaled = true
-statusLabel.Font = Enum.Font.Gotham
 statusLabel.Parent = mainFrame
+statusLabel.BackgroundTransparency = 1
+statusLabel.Position = UDim2.new(0, 20, 0, 250)
+statusLabel.Size = UDim2.new(1, -40, 0, 30)
+statusLabel.Font = Enum.Font.Gotham
+statusLabel.Text = ""
+statusLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+statusLabel.TextScaled = true
+statusLabel.TextSize = 12
 
--- Función de animación para el botón
-local function animateButton(button, scale)
-    local tween = TweenService:Create(
-        button,
-        TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
-        {Size = button.Size * scale}
-    )
-    tween:Play()
-    
-    tween.Completed:Connect(function()
-        local returnTween = TweenService:Create(
-            button,
-            TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
-            {Size = button.Size / scale}
-        )
-        returnTween:Play()
-    end)
-end
-
--- Función para cargar el script principal
-local function loadMainScript()
-    statusLabel.Text = "Cargando script..."
-    statusLabel.TextColor3 = Color3.fromRGB(100, 255, 100)
-    
-    wait(1)
-    
-    -- Intentar cargar el script
-    local success, result = pcall(function()
-        return loadstring(game:HttpGet(SCRIPT_URL))()
-    end)
-    
-    if success then
-        statusLabel.Text = "Script cargado exitosamente!"
-        -- Marcar como autenticado
-        _G.KeyAuthenticated = true
-        wait(2)
-        screenGui:Destroy()
-    else
-        statusLabel.Text = "Error al cargar el script"
+-- Función para mostrar mensaje de estado
+local function showStatus(message, isError)
+    statusLabel.Text = message
+    if isError then
         statusLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
-        print("Error loading script:", result)
+    else
+        statusLabel.TextColor3 = Color3.fromRGB(100, 255, 100)
     end
+    
+    -- Animación de aparición
+    statusLabel.TextTransparency = 1
+    local tween = TweenService:Create(statusLabel, TweenInfo.new(0.3), {TextTransparency = 0})
+    tween:Play()
 end
 
--- Función de verificación de key
-local function verifyKey()
-    local enteredKey = keyTextBox.Text
+-- Función para cerrar la interfaz con animación
+local function closeInterface()
+    local tween1 = TweenService:Create(mainFrame, TweenInfo.new(0.3), {Size = UDim2.new(0, 0, 0, 0)})
+    local tween2 = TweenService:Create(shadow, TweenInfo.new(0.3), {Size = UDim2.new(0, 0, 0, 0)})
     
-    if enteredKey == CORRECT_KEY then
-        statusLabel.Text = "Key correcta! ✓"
-        statusLabel.TextColor3 = Color3.fromRGB(100, 255, 100)
-        
-        -- Animar el frame desapareciendo
-        local fadeOut = TweenService:Create(
-            mainFrame,
-            TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
-            {BackgroundTransparency = 1}
-        )
-        fadeOut:Play()
-        
-        -- Hacer todos los elementos transparentes
-        for _, child in pairs(mainFrame:GetChildren()) do
-            if child:IsA("GuiObject") then
-                local properties = {}
-                if child:IsA("TextLabel") or child:IsA("TextButton") or child:IsA("TextBox") then
-                    properties.TextTransparency = 1
-                end
-                if child.BackgroundTransparency ~= 1 then
-                    properties.BackgroundTransparency = 1
-                end
-                
-                if next(properties) then
-                    local childTween = TweenService:Create(
-                        child,
-                        TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
-                        properties
-                    )
-                    childTween:Play()
-                end
-            end
-        end
+    tween1:Play()
+    tween2:Play()
+    
+    tween1.Completed:Connect(function()
+        screenGui:Destroy()
+    end)
+end
+
+-- Función para verificar la key
+local function verifyKey()
+    local inputKey = keyTextBox.Text
+    
+    if inputKey == "" then
+        showStatus("❌ Por favor, ingresa una key", true)
+        return
+    end
+    
+    if inputKey == CORRECT_KEY then
+        showStatus("✅ Key correcta! Cargando script...", false)
+        saveKey(inputKey)
         
         wait(1)
+        closeInterface()
+        
+        wait(0.5)
         loadMainScript()
     else
-        statusLabel.Text = "Key incorrecta. Inténtalo de nuevo."
-        statusLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
-        
-        -- Animar error
-        local errorTween = TweenService:Create(
-            mainFrame,
-            TweenInfo.new(0.1, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
-            {Position = UDim2.new(0.5, -190, 0.5, -125)}
-        )
-        errorTween:Play()
-        
-        errorTween.Completed:Connect(function()
-            local returnTween = TweenService:Create(
-                mainFrame,
-                TweenInfo.new(0.1, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
-                {Position = UDim2.new(0.5, -210, 0.5, -125)}
-            )
-            returnTween:Play()
-            
-            returnTween.Completed:Connect(function()
-                local finalTween = TweenService:Create(
-                    mainFrame,
-                    TweenInfo.new(0.1, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
-                    {Position = UDim2.new(0.5, -200, 0.5, -125)}
-                )
-                finalTween:Play()
-            end)
-        end)
+        showStatus("❌ Key incorrecta. Inténtalo de nuevo.", true)
+        keyTextBox.Text = ""
     end
 end
 
--- Conectar eventos
-verifyButton.MouseButton1Click:Connect(function()
-    animateButton(verifyButton, 0.95)
-    verifyKey()
-end)
+-- Eventos
+verifyButton.MouseButton1Click:Connect(verifyKey)
 
--- Permitir verificar con Enter
 keyTextBox.FocusLost:Connect(function(enterPressed)
     if enterPressed then
         verifyKey()
     end
 end)
 
--- Efectos hover
+-- Efecto hover para el botón
 verifyButton.MouseEnter:Connect(function()
-    local hoverTween = TweenService:Create(
-        verifyButton,
-        TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
-        {BackgroundColor3 = Color3.fromRGB(0, 140, 220)}
-    )
-    hoverTween:Play()
+    local tween = TweenService:Create(verifyButton, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(0, 200, 0)})
+    tween:Play()
 end)
 
 verifyButton.MouseLeave:Connect(function()
-    local leaveTween = TweenService:Create(
-        verifyButton,
-        TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
-        {BackgroundColor3 = Color3.fromRGB(0, 162, 255)}
-    )
-    leaveTween:Play()
+    local tween = TweenService:Create(verifyButton, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(0, 170, 0)})
+    tween:Play()
 end)
 
-print("Sistema de autenticación cargado.")
-print("Estado de autenticación:", _G.KeyAuthenticated and "Autenticado" or "No autenticado")
-if not _G.KeyAuthenticated then
-    print("Key requerida: " .. CORRECT_KEY)
-end
+-- Animación de entrada
+mainFrame.Size = UDim2.new(0, 0, 0, 0)
+shadow.Size = UDim2.new(0, 0, 0, 0)
+
+local enterTween1 = TweenService:Create(mainFrame, TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Size = UDim2.new(0, 400, 0, 300)})
+local enterTween2 = TweenService:Create(shadow, TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Size = UDim2.new(0, 410, 0, 310)})
+
+enterTween1:Play()
+enterTween2:Play()
+
+print("🔐 Sistema de Key de LezzoStore iniciado")
+print("Key requerida: " .. CORRECT_KEY)
