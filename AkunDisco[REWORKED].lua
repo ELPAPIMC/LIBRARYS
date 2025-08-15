@@ -361,7 +361,4 @@ local function JTSFQUS_fake_script() -- TeleportUp.LocalScript
 	        button.Text = "Teleport Up"
 	    end
 	end)
-	
-	
 end
-coroutine.wrap(JTSFQUS_fake_script)()
