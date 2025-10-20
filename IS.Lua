@@ -1,16 +1,17 @@
--- IS Library v2.0 Enhanced
+-- IS Library v2.5 Enhanced
 -- Biblioteca UI moderna para Roblox con sistema completo
 
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 local CoreGui = game:GetService("CoreGui")
 local HttpService = game:GetService("HttpService")
+local RunService = game:GetService("RunService")
 
 local IS = {}
 IS.__index = IS
 IS.ConfigFolder = "ISLibrary"
 
--- Temas predefinidos
+-- Temas predefinidos con gradientes
 IS.Themes = {
     Dark = {
         Background = Color3.fromRGB(25, 25, 35),
@@ -22,7 +23,15 @@ IS.Themes = {
         Success = Color3.fromRGB(67, 181, 129),
         Error = Color3.fromRGB(240, 71, 71),
         Warning = Color3.fromRGB(250, 166, 26),
-        Info = Color3.fromRGB(52, 152, 219)
+        Info = Color3.fromRGB(52, 152, 219),
+        Gradient = {
+            ColorSequence.new({
+                ColorSequenceKeypoint.new(0, Color3.fromRGB(30, 30, 40)),
+                ColorSequenceKeypoint.new(0.5, Color3.fromRGB(60, 60, 75)),
+                ColorSequenceKeypoint.new(1, Color3.fromRGB(30, 30, 40))
+            }),
+            Speed = 3
+        }
     },
     Light = {
         Background = Color3.fromRGB(245, 245, 250),
@@ -34,7 +43,15 @@ IS.Themes = {
         Success = Color3.fromRGB(67, 181, 129),
         Error = Color3.fromRGB(240, 71, 71),
         Warning = Color3.fromRGB(250, 166, 26),
-        Info = Color3.fromRGB(52, 152, 219)
+        Info = Color3.fromRGB(52, 152, 219),
+        Gradient = {
+            ColorSequence.new({
+                ColorSequenceKeypoint.new(0, Color3.fromRGB(200, 200, 220)),
+                ColorSequenceKeypoint.new(0.5, Color3.fromRGB(255, 255, 255)),
+                ColorSequenceKeypoint.new(1, Color3.fromRGB(200, 200, 220))
+            }),
+            Speed = 4
+        }
     },
     Ocean = {
         Background = Color3.fromRGB(20, 30, 48),
@@ -46,41 +63,34 @@ IS.Themes = {
         Success = Color3.fromRGB(46, 204, 113),
         Error = Color3.fromRGB(231, 76, 60),
         Warning = Color3.fromRGB(241, 196, 15),
-        Info = Color3.fromRGB(52, 152, 219)
+        Info = Color3.fromRGB(52, 152, 219),
+        Gradient = {
+            ColorSequence.new({
+                ColorSequenceKeypoint.new(0, Color3.fromRGB(30, 60, 90)),
+                ColorSequenceKeypoint.new(0.5, Color3.fromRGB(52, 152, 219)),
+                ColorSequenceKeypoint.new(1, Color3.fromRGB(30, 60, 90))
+            }),
+            Speed = 5
+        }
     }
 }
 
--- Sistema de notificaciones mejorado
+-- Sistema de notificaciones (posición superior derecha)
 local NotificationManager = {}
 NotificationManager.Notifications = {}
-NotificationManager.MaxVisible = 5
+NotificationManager.Offset = 10
 
 function NotificationManager:Create(title, message, duration, type)
     pcall(function()
-        -- Eliminar notificaciones antiguas si hay muchas
-        if #self.Notifications >= self.MaxVisible then
-            local oldest = self.Notifications[1]
-            table.remove(self.Notifications, 1)
-            if oldest and oldest:FindFirstChild("MainFrame") then
-                oldest:Destroy()
-            end
-        end
-        
-        local notifContainer = Instance.new("Frame")
-        notifContainer.Name = "NotificationContainer"
-        notifContainer.Size = UDim2.new(0, 320, 0, 0)
-        notifContainer.Position = UDim2.new(0.5, -160, 1, 10)
-        notifContainer.BackgroundTransparency = 1
-        notifContainer.ZIndex = 10000
-        notifContainer.Parent = IS.ScreenGui
-        
         local notif = Instance.new("Frame")
-        notif.Name = "MainFrame"
-        notif.Size = UDim2.new(1, 0, 0, 0)
+        notif.Name = "Notification"
+        notif.Size = UDim2.new(0, 300, 0, 0)
+        notif.Position = UDim2.new(1, -310, 0, self.Offset)
         notif.BackgroundColor3 = IS.CurrentTheme.Secondary
         notif.BorderSizePixel = 0
+        notif.ZIndex = 10000
         notif.ClipsDescendants = true
-        notif.Parent = notifContainer
+        notif.Parent = IS.ScreenGui
         
         local corner = Instance.new("UICorner", notif)
         corner.CornerRadius = UDim.new(0, 8)
@@ -132,48 +142,40 @@ function NotificationManager:Create(title, message, duration, type)
         msgLabel.TextWrapped = true
         msgLabel.Parent = notif
         
-        table.insert(self.Notifications, notifContainer)
+        table.insert(self.Notifications, notif)
         self:UpdatePositions()
         
         -- Animación de entrada
         TweenService:Create(notif, TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
-            Size = UDim2.new(1, 0, 0, 85)
-        }):Play()
-        
-        TweenService:Create(notifContainer, TweenInfo.new(0.4, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-            Position = UDim2.new(0.5, -160, 1, -95)
+            Size = UDim2.new(0, 300, 0, 85)
         }):Play()
         
         -- Auto-destrucción
         task.delay(duration or 4, function()
-            TweenService:Create(notifContainer, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
-                Position = UDim2.new(0.5, -160, 1, 10)
+            TweenService:Create(notif, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
+                Position = UDim2.new(1, 10, 0, notif.Position.Y.Offset)
             }):Play()
             
             task.wait(0.3)
             for i, n in ipairs(self.Notifications) do
-                if n == notifContainer then
+                if n == notif then
                     table.remove(self.Notifications, i)
                     break
                 end
             end
-            notifContainer:Destroy()
+            notif:Destroy()
             self:UpdatePositions()
         end)
     end)
 end
 
 function NotificationManager:UpdatePositions()
-    local offset = -95
-    for i = #self.Notifications, 1, -1 do
-        local notif = self.Notifications[i]
-        if notif then
-            TweenService:Create(notif, TweenInfo.new(0.3, Enum.EasingStyle.Quad), {
-                Position = UDim2.new(0.5, -160, 1, offset)
-            }):Play()
-            local height = notif:FindFirstChild("MainFrame") and notif.MainFrame.Size.Y.Offset or 85
-            offset = offset - height - 10
-        end
+    local offset = 10
+    for _, notif in ipairs(self.Notifications) do
+        TweenService:Create(notif, TweenInfo.new(0.3, Enum.EasingStyle.Quad), {
+            Position = UDim2.new(1, -310, 0, offset)
+        }):Play()
+        offset = offset + notif.Size.Y.Offset + 10
     end
 end
 
@@ -195,6 +197,30 @@ function IS:LoadConfig(name)
         return nil
     end)
     return success and result or nil
+end
+
+function IS:GetConfigs()
+    local configs = {}
+    pcall(function()
+        if not isfolder(self.ConfigFolder) then
+            makefolder(self.ConfigFolder)
+        end
+        for _, file in ipairs(listfiles(self.ConfigFolder)) do
+            local name = file:match("([^/\\]+)%.json$")
+            if name then
+                table.insert(configs, name)
+            end
+        end
+    end)
+    return configs
+end
+
+function IS:DeleteConfig(name)
+    pcall(function()
+        if isfile(self.ConfigFolder .. "/" .. name .. ".json") then
+            delfile(self.ConfigFolder .. "/" .. name .. ".json")
+        end
+    end)
 end
 
 -- Constructor principal
@@ -232,19 +258,54 @@ function IS:CreateWindow(config)
         MainFrame.BackgroundColor3 = IS.CurrentTheme.Background
         MainFrame.BorderSizePixel = 0
         MainFrame.Active = true
+        MainFrame.ClipsDescendants = true
         MainFrame.Parent = IS.ScreenGui
         
+        local corner = Instance.new("UICorner", MainFrame)
+        corner.CornerRadius = UDim.new(0, 10)
+        
+        -- Stroke animado con gradiente
+        local stroke = Instance.new("UIStroke", MainFrame)
+        stroke.Thickness = 2
+        stroke.Transparency = 0
+        
+        local gradient = Instance.new("UIGradient", stroke)
+        gradient.Color = IS.CurrentTheme.Gradient[1]
+        
+        -- Animación del gradiente
+        local gradientConnection
+        gradientConnection = RunService.RenderStepped:Connect(function()
+            if not MainFrame or not MainFrame.Parent then
+                gradientConnection:Disconnect()
+                return
+            end
+            gradient.Rotation = (gradient.Rotation + IS.CurrentTheme.Gradient.Speed) % 360
+        end)
+        
+        -- Animación de flotación
+        local floatConnection
+        local startPos = MainFrame.Position
+        floatConnection = RunService.RenderStepped:Connect(function()
+            if not MainFrame or not MainFrame.Parent then
+                floatConnection:Disconnect()
+                return
+            end
+            local offset = math.sin(tick() * 2) * 3
+            MainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset, startPos.Y.Scale, startPos.Y.Offset + offset)
+        end)
+        
         -- Hacer draggable
-        local dragging, dragInput, dragStart, startPos
+        local dragging, dragInput, dragStart, startPosOffset
         MainFrame.InputBegan:Connect(function(input)
             if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
                 dragging = true
                 dragStart = input.Position
-                startPos = MainFrame.Position
+                startPosOffset = MainFrame.Position
                 
                 input.Changed:Connect(function()
                     if input.UserInputState == Enum.UserInputState.End then
                         dragging = false
+                        startPos = MainFrame.Position
                     end
                 end)
             end
@@ -259,12 +320,10 @@ function IS:CreateWindow(config)
         UserInputService.InputChanged:Connect(function(input)
             if input == dragInput and dragging then
                 local delta = input.Position - dragStart
-                MainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+                local newPos = UDim2.new(startPosOffset.X.Scale, startPosOffset.X.Offset + delta.X, startPosOffset.Y.Scale, startPosOffset.Y.Offset + delta.Y)
+                MainFrame.Position = newPos
             end
         end)
-        
-        local corner = Instance.new("UICorner", MainFrame)
-        corner.CornerRadius = UDim.new(0, 10)
         
         -- Header
         local Header = Instance.new("Frame")
@@ -327,8 +386,18 @@ function IS:CreateWindow(config)
                 Size = UDim2.new(0, 0, 0, 0)
             }):Play()
             task.wait(0.3)
+            if floatConnection then floatConnection:Disconnect() end
+            if gradientConnection then gradientConnection:Disconnect() end
             IS.ScreenGui:Destroy()
         end)
+        
+        -- Container para contenido (tabs + content)
+        local ContentWrapper = Instance.new("Frame")
+        ContentWrapper.Name = "ContentWrapper"
+        ContentWrapper.Size = UDim2.new(1, 0, 1, -40)
+        ContentWrapper.Position = UDim2.new(0, 0, 0, 40)
+        ContentWrapper.BackgroundTransparency = 1
+        ContentWrapper.Parent = MainFrame
         
         MinimizeBtn.MouseButton1Click:Connect(function()
             Window.Minimized = not Window.Minimized
@@ -337,17 +406,19 @@ function IS:CreateWindow(config)
             TweenService:Create(MainFrame, TweenInfo.new(0.3, Enum.EasingStyle.Quad), {
                 Size = targetSize
             }):Play()
+            
+            ContentWrapper.Visible = not Window.Minimized
         end)
         
         -- Tab container
         local tabWidth = isMobile and 120 or 150
         local TabContainer = Instance.new("Frame")
         TabContainer.Name = "TabContainer"
-        TabContainer.Size = UDim2.new(0, tabWidth, 1, -50)
-        TabContainer.Position = UDim2.new(0, 10, 0, 45)
+        TabContainer.Size = UDim2.new(0, tabWidth, 1, -10)
+        TabContainer.Position = UDim2.new(0, 10, 0, 5)
         TabContainer.BackgroundColor3 = IS.CurrentTheme.Secondary
         TabContainer.BorderSizePixel = 0
-        TabContainer.Parent = MainFrame
+        TabContainer.Parent = ContentWrapper
         
         local tabCorner = Instance.new("UICorner", TabContainer)
         tabCorner.CornerRadius = UDim.new(0, 8)
@@ -366,15 +437,16 @@ function IS:CreateWindow(config)
         -- Content container
         local ContentContainer = Instance.new("Frame")
         ContentContainer.Name = "ContentContainer"
-        ContentContainer.Size = UDim2.new(1, -(tabWidth + 30), 1, -50)
-        ContentContainer.Position = UDim2.new(0, tabWidth + 20, 0, 45)
+        ContentContainer.Size = UDim2.new(1, -(tabWidth + 30), 1, -10)
+        ContentContainer.Position = UDim2.new(0, tabWidth + 20, 0, 5)
         ContentContainer.BackgroundTransparency = 1
-        ContentContainer.Parent = MainFrame
+        ContentContainer.Parent = ContentWrapper
         
         Window.MainFrame = MainFrame
         Window.TabContainer = TabContainer
         Window.ContentContainer = ContentContainer
         Window.IsMobile = isMobile
+        Window.ContentWrapper = ContentWrapper
         
         -- Botón móvil si está habilitado
         if config.MobileButton and isMobile then
@@ -432,6 +504,88 @@ function IS:CreateWindow(config)
         warn("[IS Library] Error al crear ventana: " .. tostring(err))
         return nil
     end
+    
+    -- Crear tab de Config por defecto
+    local ConfigTab = Window:CreateTab("⚙️ Config")
+    
+    local currentConfigName = ""
+    local selectedConfig = nil
+    
+    ConfigTab:AddSection("Administrar Configs")
+    
+    ConfigTab:AddTextbox({
+        Name = "Nombre de Config",
+        Id = "_ConfigName",
+        Placeholder = "Mi Configuración",
+        Callback = function(text)
+            currentConfigName = text
+        end
+    })
+    
+    ConfigTab:AddButton({
+        Name = "💾 Guardar Config",
+        Callback = function()
+            if currentConfigName ~= "" then
+                Window:SaveConfig(currentConfigName)
+            else
+                Window:Notify("Error", "Escribe un nombre para la config", 3, "error")
+            end
+        end
+    })
+    
+    ConfigTab:AddSection("Cargar Configs")
+    
+    local configDropdown
+    local function refreshConfigs()
+        local configs = IS:GetConfigs()
+        if #configs == 0 then
+            table.insert(configs, "Sin configs")
+        end
+        return configs
+    end
+    
+    configDropdown = ConfigTab:AddDropdown({
+        Name = "Seleccionar Config",
+        Id = "_SelectedConfig",
+        Options = refreshConfigs(),
+        Callback = function(option)
+            if option ~= "Sin configs" then
+                selectedConfig = option
+            end
+        end
+    })
+    
+    ConfigTab:AddButton({
+        Name = "📂 Cargar Config",
+        Callback = function()
+            if selectedConfig and selectedConfig ~= "Sin configs" then
+                Window:LoadConfig(selectedConfig)
+            else
+                Window:Notify("Error", "Selecciona una config primero", 3, "error")
+            end
+        end
+    })
+    
+    ConfigTab:AddButton({
+        Name = "🔄 Refrescar Lista",
+        Callback = function()
+            -- Nota: Necesitarías recrear el dropdown para refrescar
+            Window:Notify("Info", "Recarga el script para ver configs nuevas", 3, "info")
+        end
+    })
+    
+    ConfigTab:AddButton({
+        Name = "🗑️ Eliminar Config",
+        Callback = function()
+            if selectedConfig and selectedConfig ~= "Sin configs" then
+                IS:DeleteConfig(selectedConfig)
+                Window:Notify("Éxito", "Config eliminada: " .. selectedConfig, 3, "success")
+                selectedConfig = nil
+            else
+                Window:Notify("Error", "Selecciona una config primero", 3, "error")
+            end
+        end
+    })
     
     -- Crear Tab
     function Window:CreateTab(name)
@@ -607,6 +761,10 @@ function IS:CreateWindow(config)
                     Update = updateToggle,
                     GetValue = function() return toggleState end
                 }
+                
+                if config.Default then
+                    Window.ConfigData[elementId] = toggleState
+                end
             end)
             
             return {
@@ -1098,7 +1256,7 @@ function IS:CreateWindow(config)
         end
     end
     
-    -- Notificaciones mejoradas
+    -- Notificaciones
     function Window:Notify(title, message, duration, type)
         NotificationManager:Create(title, message, duration, type)
     end
