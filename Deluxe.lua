@@ -1329,7 +1329,7 @@ function Library:CreateWindow(options)
     InfoText.Size = UDim2.new(1, -20, 1, -20)
     InfoText.Position = UDim2.new(0, 10, 0, 10)
     InfoText.BackgroundTransparency = 1
-    InfoText.Text = "Advanced UI Library v3.0\n\nCreated by: Script Dev\nFeatures: Auto-Save, Multiple Configs, Notifications"
+    InfoText.Text = "Features: Auto-Save, Multiple Configs, Notifications"
     InfoText.TextColor3 = Library.Theme.TextDim
     InfoText.TextSize = 12
     InfoText.Font = Enum.Font.Gotham
