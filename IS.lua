@@ -223,7 +223,7 @@ function IS:CreateWindow(config)
     
     -- Determinar tamaño según dispositivo
     local isMobile = IsMobile()
-    local windowSize = isMobile and UDim2.new(0.9, 0, 0, 500) or UDim2.new(0, 600, 0, 450)
+    local windowSize = isMobile and UDim2.new(0.9, 0, 0, 300) or UDim2.new(0, 600, 0, 450)
     
     -- Main Frame
     local MainFrame = Instance.new("Frame")
