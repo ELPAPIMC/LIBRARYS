@@ -138,7 +138,7 @@ function NotificationSystem:Init(parent)
     self.Container.Parent = parent
     
     local layout = Instance.new("UIListLayout")
-    layout.VerticalAlignment = Enum.VerticalAlignment.Bottom
+    layout.VerticalAlignment = Enum.VerticalAlignment.Top
     layout.Padding = UDim.new(0, 5)
     layout.Parent = self.Container
 end
@@ -211,6 +211,21 @@ function IS:CreateWindow(config)
     local Title = config.Title or "IS Library"
     local MobileButton = config.MobileButton or false
     
+    -- Iconos predeterminados
+    local DefaultIcons = {
+        ["Main"] = "rbxassetid://7733911816",
+        ["Player"] = "rbxassetid://7733674079",
+        ["Combat"] = "rbxassetid://7743873633",
+        ["Sword"] = "rbxassetid://7743873633",
+        ["Settings"] = "rbxassetid://7733955511",
+        ["Code"] = "rbxassetid://7734042071",
+        ["Misc"] = "rbxassetid://7743871002",
+        ["Visual"] = "rbxassetid://7733919505",
+        ["Teleport"] = "rbxassetid://7733920644",
+        ["Home"] = "rbxassetid://7733911816",
+        ["Credits"] = "rbxassetid://7733955511"
+    }
+    
     -- ScreenGui
     local ScreenGui = Instance.new("ScreenGui")
     ScreenGui.Name = "ISLibrary"
@@ -223,7 +238,10 @@ function IS:CreateWindow(config)
     
     -- Determinar tamaño según dispositivo
     local isMobile = IsMobile()
-    local windowSize = isMobile and UDim2.new(0.7, 0, 0, 300) or UDim2.new(0, 600, 0, 450)
+    local windowSize = isMobile and UDim2.new(0.7, 0, 0, 400) or UDim2.new(0, 600, 0, 450)
+    if isMobile then
+        windowSize = UDim2.new(0, math.min(300, game.Workspace.CurrentCamera.ViewportSize.X * 0.7), 0, 400)
+    end
     
     -- Main Frame
     local MainFrame = Instance.new("Frame")
@@ -339,13 +357,16 @@ function IS:CreateWindow(config)
     -- Draggable
     MakeDraggable(MainFrame, TitleBar)
     
-    -- Tab Container
-    local TabContainer = Instance.new("Frame")
+    -- Tab Container (ScrollingFrame)
+    local TabContainer = Instance.new("ScrollingFrame")
     TabContainer.Name = "TabContainer"
     TabContainer.Size = UDim2.new(0, 150, 1, -50)
     TabContainer.Position = UDim2.new(0, 10, 0, 45)
     TabContainer.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
     TabContainer.BorderSizePixel = 0
+    TabContainer.ScrollBarThickness = 4
+    TabContainer.ScrollBarImageColor3 = Color3.fromRGB(52, 152, 219)
+    TabContainer.CanvasSize = UDim2.new(0, 0, 0, 0)
     TabContainer.Parent = MainFrame
     
     local tabCorner = Instance.new("UICorner")
@@ -362,6 +383,11 @@ function IS:CreateWindow(config)
     tabPadding.PaddingLeft = UDim.new(0, 5)
     tabPadding.PaddingRight = UDim.new(0, 5)
     tabPadding.Parent = TabContainer
+    
+    -- Actualizar CanvasSize del TabContainer automáticamente
+    tabLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+        TabContainer.CanvasSize = UDim2.new(0, 0, 0, tabLayout.AbsoluteContentSize.Y + 10)
+    end)
     
     -- Content Container
     local ContentContainer = Instance.new("Frame")
@@ -385,6 +411,31 @@ function IS:CreateWindow(config)
     function Window:CreateTab(name, icon)
         local Tab = {}
         
+        -- Sistema de atajos para iconos
+        local IconShortcuts = {
+            ["main"] = "rbxassetid://7733911816",
+            ["player"] = "rbxassetid://7733674079",
+            ["combat"] = "rbxassetid://7743873633",
+            ["sword"] = "rbxassetid://7743873633",
+            ["settings"] = "rbxassetid://7733955511",
+            ["code"] = "rbxassetid://7734042071",
+            ["misc"] = "rbxassetid://7743871002",
+            ["visual"] = "rbxassetid://7733919505",
+            ["teleport"] = "rbxassetid://7733920644",
+            ["home"] = "rbxassetid://7733911816",
+            ["credits"] = "rbxassetid://7733955511"
+        }
+        
+        -- Si icon es un atajo, convertirlo a URL completa
+        if icon and not string.find(icon, "rbxassetid://") then
+            icon = IconShortcuts[string.lower(icon)] or ""
+        end
+        
+        -- Si no hay icono, usar misc por defecto
+        if not icon or icon == "" then
+            icon = IconShortcuts["misc"]
+        end
+        
         -- Tab Button
         local TabButton = Instance.new("TextButton")
         TabButton.Size = UDim2.new(1, 0, 0, 35)
@@ -397,14 +448,17 @@ function IS:CreateWindow(config)
         tabBtnCorner.CornerRadius = UDim.new(0, 6)
         tabBtnCorner.Parent = TabButton
         
+        -- Icono del tab
         local tabIcon = Instance.new("ImageLabel")
         tabIcon.Size = UDim2.new(0, 20, 0, 20)
         tabIcon.Position = UDim2.new(0, 8, 0.5, 0)
         tabIcon.AnchorPoint = Vector2.new(0, 0.5)
         tabIcon.BackgroundTransparency = 1
-        tabIcon.Image = icon or ""
+        tabIcon.Image = icon
+        tabIcon.ImageColor3 = Color3.fromRGB(200, 200, 200)
         tabIcon.Parent = TabButton
         
+        -- Label del tab
         local tabLabel = Instance.new("TextLabel")
         tabLabel.Size = UDim2.new(1, -40, 1, 0)
         tabLabel.Position = UDim2.new(0, 35, 0, 0)
@@ -448,17 +502,20 @@ function IS:CreateWindow(config)
                 tab.Content.Visible = false
                 tab.Button.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
                 tab.Label.TextColor3 = Color3.fromRGB(200, 200, 200)
+                tab.Icon.ImageColor3 = Color3.fromRGB(200, 200, 200)
             end
             
             TabContent.Visible = true
             TabButton.BackgroundColor3 = Color3.fromRGB(52, 152, 219)
             tabLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+            tabIcon.ImageColor3 = Color3.fromRGB(255, 255, 255)
             Window.CurrentTab = Tab
         end)
         
         Tab.Button = TabButton
         Tab.Content = TabContent
         Tab.Label = tabLabel
+        Tab.Icon = tabIcon
         Tab.Elements = {}
         
         -- Activar primer tab
@@ -466,6 +523,7 @@ function IS:CreateWindow(config)
             TabContent.Visible = true
             TabButton.BackgroundColor3 = Color3.fromRGB(52, 152, 219)
             tabLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+            tabIcon.ImageColor3 = Color3.fromRGB(255, 255, 255)
             Window.CurrentTab = Tab
         end
         
@@ -1134,7 +1192,7 @@ function IS:CreateWindow(config)
     
     -- Crear tab de Settings al final
     function Window:CreateSettingsTab()
-        local SettingsTab = Window:CreateTab("Settings", "rbxassetid://7733955511")
+        local SettingsTab = Window:CreateTab("Settings", DefaultIcons["Settings"])
         
         SettingsTab:AddSection("💾 Configuration System")
         
